@@ -1,0 +1,47 @@
+<svg width="100%" viewBox="0 0 680 390" role="img" xmlns="http://www.w3.org/2000/svg" font-family="'Anthropic Sans', -apple-system, system-ui, 'Segoe UI', sans-serif">
+  <title>How a Conduit agent works</title>
+  <desc>You paste prompts; your agent (opencode or Claude) does the work: reads and writes your files, uses tools via MCPs, and records what it did. It rests on two memories — memory.md for short-term and The Curator for long-term — and is governed by one file you control, AGENTS.md, running on your own computer.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="rgb(120,120,116)"/>
+    </marker>
+  </defs>
+
+  <text x="40" y="28" fill="rgb(20,20,19)" font-size="14" font-weight="500">How a Conduit agent works</text>
+
+  <!-- You -->
+  <rect x="40" y="48" width="170" height="54" rx="8" fill="rgb(244,241,233)" stroke="rgb(150,138,116)" stroke-width="0.5"/>
+  <text x="125" y="68" text-anchor="middle" dominant-baseline="central" fill="rgb(70,60,45)" font-size="14" font-weight="500">You</text>
+  <text x="125" y="86" text-anchor="middle" dominant-baseline="central" fill="rgb(120,105,80)" font-size="12">paste a prompt</text>
+
+  <line x1="212" y1="75" x2="296" y2="75" stroke="rgb(120,120,116)" stroke-width="1.2" marker-end="url(#arrow)"/>
+
+  <!-- Agent -->
+  <rect x="300" y="48" width="200" height="54" rx="8" fill="rgb(238,237,254)" stroke="rgb(83,74,183)" stroke-width="0.5"/>
+  <text x="400" y="68" text-anchor="middle" dominant-baseline="central" fill="rgb(60,52,137)" font-size="14" font-weight="500">Your agent</text>
+  <text x="400" y="86" text-anchor="middle" dominant-baseline="central" fill="rgb(83,74,183)" font-size="12">opencode or Claude</text>
+
+  <line x1="400" y1="104" x2="400" y2="128" stroke="rgb(120,120,116)" stroke-width="1.2" marker-end="url(#arrow)"/>
+
+  <!-- What it does -->
+  <rect x="40" y="130" width="600" height="108" rx="10" fill="rgb(225,245,238)" stroke="rgb(15,110,86)" stroke-width="0.5"/>
+  <text x="60" y="152" fill="rgb(8,80,65)" font-size="13" font-weight="500">What it does for you</text>
+  <rect x="60" y="166" width="172" height="56" rx="8" fill="rgb(255,255,255)" stroke="rgb(15,110,86)" stroke-width="0.5"/>
+  <text x="146" y="194" text-anchor="middle" dominant-baseline="central" fill="rgb(8,80,65)" font-size="12">Reads &amp; writes your files</text>
+  <rect x="254" y="166" width="172" height="56" rx="8" fill="rgb(255,255,255)" stroke="rgb(15,110,86)" stroke-width="0.5"/>
+  <text x="340" y="194" text-anchor="middle" dominant-baseline="central" fill="rgb(8,80,65)" font-size="12">Uses tools via MCPs</text>
+  <rect x="448" y="166" width="172" height="56" rx="8" fill="rgb(255,255,255)" stroke="rgb(15,110,86)" stroke-width="0.5"/>
+  <text x="534" y="194" text-anchor="middle" dominant-baseline="central" fill="rgb(8,80,65)" font-size="12">Records what it did</text>
+
+  <line x1="400" y1="240" x2="400" y2="264" stroke="rgb(120,120,116)" stroke-width="1.2" marker-end="url(#arrow)"/>
+
+  <!-- Memory foundation -->
+  <rect x="120" y="266" width="210" height="54" rx="8" fill="rgb(238,237,254)" stroke="rgb(83,74,183)" stroke-width="0.5"/>
+  <text x="225" y="286" text-anchor="middle" dominant-baseline="central" fill="rgb(60,52,137)" font-size="13" font-weight="500">memory.md</text>
+  <text x="225" y="304" text-anchor="middle" dominant-baseline="central" fill="rgb(83,74,183)" font-size="12">short-term memory</text>
+  <rect x="350" y="266" width="210" height="54" rx="8" fill="rgb(238,237,254)" stroke="rgb(83,74,183)" stroke-width="0.5"/>
+  <text x="455" y="286" text-anchor="middle" dominant-baseline="central" fill="rgb(60,52,137)" font-size="13" font-weight="500">The Curator</text>
+  <text x="455" y="304" text-anchor="middle" dominant-baseline="central" fill="rgb(83,74,183)" font-size="12">long-term second brain</text>
+
+  <text x="40" y="350" fill="rgb(61,61,58)" font-size="12">Governed by one file you control — AGENTS.md. Runs on your computer; your files stay private.</text>
+</svg>
