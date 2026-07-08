@@ -42,7 +42,7 @@ Agent name:       [AGENT_NAME]
 Owner:            [YOUR_FULL_NAME]
 Organisation:     [YOUR_ORGANISATION — leave blank for Personal config]
 Configuration:    [PERSONAL / COMPANY]
-Version:          1.0
+Version:          1.1
 ```
 
 ---
@@ -588,7 +588,7 @@ STATUS: RECORDED
 
 ## Cotrugli Ledger Connector (Required)
 
-The Cotrugli Ledger records tamper-evident hashes of agent lifecycle events. **Connecting to the ledger is a required part of this lab** — every Vanguard agent must be able to submit its lifecycle events. It does not change how the agent works locally; it adds an auditable, tamper-evident trail.
+The Cotrugli Ledger records tamper-evident hashes of agent lifecycle events on the **live Cotrugli DLT sandbox**. **Connecting to the ledger is a required part of this lab** — every Vanguard agent must be able to submit its lifecycle events. It does not change how the agent works locally; it adds an auditable, tamper-evident trail.
 
 **What gets sent:** A hash (fingerprint) of the event — *not* the raw content. No business data leaves the student's computer in readable form. This is GDPR-correct by design.
 
@@ -600,63 +600,113 @@ The Cotrugli Ledger records tamper-evident hashes of agent lifecycle events. **C
 - After CORRECTION is submitted
 - After RESOLUTION is confirmed
 
-**The connector — one thin file.** All ledger communication goes through a single function, `send_agent_event()`, in a single file (`ledger_connector.py`). The agent builds this file during setup using the Ledger Connection Prompt in the student guide. The agent never changes when the backend changes — only this one file does.
+**The connector — one thin file.** All ledger communication goes through a single function, `send_agent_event()`, in a single file (`ledger_connector.py`), plus a helper `verify_receipt(receipt_id)`. The agent builds this file during setup using the Ledger Connection Prompt in the student guide. The agent never changes when the backend changes — only this one file does.
 
-**How to send (after human confirmation):**
+**Credentials — three values, read from the environment (never written into this file):**
+```
+LEDGER_BASE_URL     the sandbox host
+LEDGER_API_KEY      your API key
+LEDGER_TENANT_ID    your tenant / participant ID
+```
+
+**What the agent passes to the connector (simple, stable — this never changes):**
 
 ```python
 # send_agent_event() — defined in ledger_connector.py (built during setup)
 # Call at each lifecycle moment, only after the owner confirms.
+# YOU (the connector) hash the content and map it to the server's wire format —
+# the agent never builds the wire format itself.
 
 send_agent_event({
-    "agent_id": "[AGENT_NAME]",
-    "session_id": "[current session ID]",
-    "action_type": "[COMMITMENT / FULFILLMENT / ACCEPTANCE / DISPUTE / CORRECTION / RESOLUTION]",
-    "action_id": "[action ID from the record]",
-    "input_hash": "[SHA-256 of the input that triggered the event]",
-    "output_hash": "[SHA-256 of the output record]",
-    "occurred_at": "[RFC3339 timestamp]",
-    "reviewer_ref": "[REVIEWER_NAME if relevant]",
-    "approval": "[auto / human_approved]",
-    "status": "[success / error / denied]"
+    "action_type":    "[COMMITMENT / FULFILLMENT / ACCEPTANCE / DISPUTE / CORRECTION / RESOLUTION]",
+    "action_id":      "[action ID from the record, e.g. COMMIT-20260628]",
+    "session_id":     "[current session ID]",
+    "agent_id":       "[AGENT_NAME]",
+    "input_content":  "[raw text that triggered the event — the connector hashes this, never sends raw]",
+    "output_content": "[raw output record — the connector hashes this, never sends raw]",
+    "reviewer_ref":   "[REVIEWER_NAME if relevant, else None]",
+    "approval":       "[auto / human_approved]",
+    "status":         "[success / error / denied]"
 })
 ```
 
-**Endpoint (current sandbox):**
+**What the connector sends on the wire (confirmed live schema — `AgentToolCallEvent`):**
 ```
-POST /integrations/agent/events
-X-API-Key:  [provided by instructor — stored as an environment variable, never in this file]
-X-Tenant:   [your participant ID — provided by instructor]
-Content-Type: application/json
+POST  {LEDGER_BASE_URL}/integrations/agent/events
+Headers (ALL THREE required):
+    X-API-Key:     (from LEDGER_API_KEY)
+    X-Tenant:      (from LEDGER_TENANT_ID)
+    Content-Type:  application/json        <- mandatory, or the server returns 422
+Body — wrap the event in an "events" ARRAY (not a bare object):
+    { "events": [ {
+        "trace_id":         <stable id you generate per action_id>,
+        "span_id":          <unique id for this event>,
+        "parent_span_id":   <optional: parent action id, else omit>,
+        "session_id":       <from payload>,
+        "agent_id":         <from payload>,
+        "event_type":       <the lifecycle stage, e.g. "COMMITMENT">,
+        "tool_name":        "vanguard-lifecycle",
+        "tool_input_hash":  "sha256:" + SHA-256(input_content),   # prefix is sha256: (no caret)
+        "tool_output_hash": "sha256:" + SHA-256(output_content),
+        "status":           <from payload>,
+        "ts_start":         <RFC3339 timestamp>,
+        "ts_end":           <RFC3339 timestamp>,
+        "model_ref":        <the model the agent runs on>,
+        "approval":         { "mode": "auto | human_approved", "actor_ref": "<reviewer_ref>" }
+    } ] }
+Only hashes go on the wire — never raw input_content/output_content.
+If the server rejects event_type with 422, retry once with event_type "tool_call" and
+put the stage in tool_name (e.g. "vanguard:COMMITMENT").
 ```
+
+**Receipt + verification (anchoring on a ~60s timer):**
+
+The POST returns a `receipt_id` (looks like `sha256:c4c0…`) and an `anchor_status`. The server auto-anchors on a scheduled ~60-second timer — no anchor key needed. After waiting ≤60s:
+```
+GET  {LEDGER_BASE_URL}/receipts/{URL-ENCODED receipt_id}/proof-bundle
+Header:  X-Tenant: {LEDGER_TENANT_ID}    <- SAME value as the POST — required here too
+
+→ leaf_hash, inclusion_proof (Merkle hops), signed checkpoint (Ed25519, tree_size), verification_keys
+```
+
+**Three gotchas — get these right or the first run fails (all confirmed in testing):**
+1. `X-Tenant` identical on the POST and the proof-bundle GET — mismatch/omission → 404.
+2. `Content-Type: application/json` mandatory on the POST — else 422.
+3. URL-encode the `receipt_id` in the proof-bundle path (it contains `sha256:`).
+
+**Duplicate detection:** this path returns **no** `was_duplicate` flag. Dedup is implicit — the `receipt_id` is deterministic, so re-sending the same event returns the same receipt. Do not promise a replay signal.
+
+**What the proof proves (state honestly):** integrity + Merkle inclusion under a signed checkpoint root — **not** external consensus yet. External witness (re-anchor into NEO / a wider-liveness medium) is the next hardening step, not a blocker.
 
 **Event → VEB mapping** (so the CdayZ swap to the full Ledger is trivial — connector translates only):
 
 | Agent event field | Cotrugli VEB field |
 |---|---|
-| agent + session ID | actor_ref + process_ref (correlation) |
-| tool_call / tool_result / model_turn | event_type |
-| start / end time | semantic_time |
-| input / output hash | body_binding → ENCRYPTED_EXTERNAL / evidence_refs (never raw) |
-| auto / human_approved | hai5_level (human-AI level) |
-| reviewer ref | relations / co-signer |
+| agent_id + session_id + trace_id | actor_ref + process_ref (correlation) |
+| event_type | event_type |
+| ts_start / ts_end | semantic_time |
+| tool_input_hash / tool_output_hash | body_binding → ENCRYPTED_EXTERNAL / evidence_refs (never raw) |
+| approval.mode | hai5_level (human-AI level) |
+| approval.actor_ref (reviewer) | relations / co-signer |
 
 **Three rules the connector must respect:**
-1. **The connector is the only swap point** — one thin file. The agent never knows about the backend.
-2. **Tenant ≠ identity.** `X-Tenant` is routing/infrastructure and stays *out* of the canonical hash. Semantic identity (the principal / company → `principal_ref`) goes *into* the hash. Do not mix them.
+1. **The connector is the only swap point** — one thin file. The agent never knows about the backend or the wire schema.
+2. **Tenant ≠ identity.** `X-Tenant` (`LEDGER_TENANT_ID`) is routing only and stays *out* of the hashed body. Semantic identity travels inside the hashed body via `agent_id`. (If a future backend uses a `principal_ref` field, map `agent_id → principal_ref` here — one line, in this file only. Confirm the final identity field with Dražen before the cohort-wide rollout.)
 3. **The agent config IS the mandate.** Forbidden actions + actions-requiring-approval + reviewer map to PAC-BCVC scope + HAI5 level + governance-kernel `REQUIRE_COSIGN`. When the agent attempts a forbidden or over-limit action, the governance rule fires and requires co-sign or escalates.
 
 **Important:** Never include raw business content in the event. Only hashes. The connector function handles this — do not construct the payload manually.
 
 <!-- AGENT: after building ledger_connector.py during setup, record here: the connector file
-     path, the endpoint it targets, and how credentials are read (env var names). Do NOT write
-     the actual API key or tenant ID into this file. -->
+     path, the base URL/endpoint it targets, the verify endpoint, and how credentials are read
+     (env var names). Do NOT write the actual API key, tenant ID, or base URL value into this file. -->
 
 ```
 Connector file:   [AGENT_FILLS_THIS — e.g. ./ledger_connector.py]
-Endpoint:         [AGENT_FILLS_THIS — e.g. POST /integrations/agent/events]
-Credentials read from env: [AGENT_FILLS_THIS — e.g. LEDGER_API_KEY, LEDGER_TENANT_ID]
-Status:           [NOT YET CONNECTED → CONNECTED after first successful test event]
+Base URL:         [AGENT_FILLS_THIS — e.g. read from env LEDGER_BASE_URL, do not print the value]
+Endpoint:         [AGENT_FILLS_THIS — e.g. POST {LEDGER_BASE_URL}/integrations/agent/events]
+Verify endpoint:  [AGENT_FILLS_THIS — e.g. GET /receipts/{URL-encoded receipt_id}/proof-bundle]
+Credentials read from env: [AGENT_FILLS_THIS — e.g. LEDGER_BASE_URL, LEDGER_API_KEY, LEDGER_TENANT_ID]
+Status:           [NOT YET CONNECTED → CONNECTED after first successful test event + verified proof-bundle]
 ```
 
 ---
@@ -736,6 +786,6 @@ The Setup Prompt creates this automatically. You do not need to make these folde
 
 ---
 
-*Vanguard Execution Agent v1.0 — COTRUGLI Business School · Vanguard MBA · Chasing Jarvis*
+*Vanguard Execution Agent v1.1 — COTRUGLI Business School · Vanguard MBA · Chasing Jarvis (live Cotrugli DLT connector)*
 *opencode: place as AGENTS.md in project folder*
 *Claude Desktop: rename to CLAUDE.md, add as project knowledge; run setup with Claude Cowork or Claude Code*
