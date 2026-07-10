@@ -13,7 +13,8 @@ This is **Use Case #1** for the [Conduit framework](../../README.md): the config
 | File | What it is |
 |---|---|
 | **[AGENTS.md](AGENTS.md)** | The Vanguard Execution Agent config — copy this into your project folder (rename to `CLAUDE.md` on Claude). |
-| **[Vanguard_Agent_Lab_Guide.md](Vanguard_Agent_Lab_Guide.md)** | The complete, step-by-step student guide (v3.0). |
+| **[Vanguard_Agent_Lab_Guide.md](Vanguard_Agent_Lab_Guide.md)** | The complete, step-by-step student guide (the version is stated in the guide's header). |
+| **[curator-skill/](curator-skill/)** | opencode-adapted copy of The Curator's usage skill — the Curator install prompt downloads this into the agent's project. |
 | **[scenarios/](scenarios/)** | Four ready-to-use fictional business scenarios if you don't have your own yet. |
 | **[images/](images/)** | The lab's diagrams. |
 
@@ -50,11 +51,11 @@ The full walkthrough is in the [lab guide](Vanguard_Agent_Lab_Guide.md). In shor
 2. **Make a folder**, drop in [AGENTS.md](AGENTS.md) (or `CLAUDE.md`).
 3. **Setup prompt** → builds folders, memory, tools. ([prompt](../../templates/prompts/setup.md))
 4. **Fill the config** — Personal or Company. ([prompt](../../templates/prompts/fill-config.md))
-5. **Install The Curator** (long-term memory). ([prompt](../../templates/prompts/install-curator.md))
-6. **Connect the Cotrugli Ledger** (required) — build `ledger_connector.py` with the Ledger Connection prompt in the [guide](Vanguard_Agent_Lab_Guide.md). Your instructor provides the API key and tenant ID.
+5. **Install The Curator** (long-term memory) — a **two-step** install: install the app, then a second prompt connects its MCP *and* its usage skill (split by track). See Section 6 of the [guide](Vanguard_Agent_Lab_Guide.md).
+6. **Connect the Cotrugli Ledger** (required) — build `ledger_connector.py` with the Ledger Connection prompt in the [guide](Vanguard_Agent_Lab_Guide.md). All you need from your instructor is **your API key**.
 7. **Run your project:** create your Commitment, record Fulfillments with evidence, get Acceptances, handle Disputes, produce a Run Report.
 
-> Your instructor provides the ledger **API key** and **tenant/participant ID**. The agent stores them as environment variables — never in any file.
+> **Ledger — one value.** Your instructor gives you just your **API key**. The ledger address (`https://agents.cotrugli.tech`) is built into the connector, and there is **no tenant ID** — the server derives it from your key. The agent stores the key in a gitignored `.env` / an environment variable — never in any shared file.
 
 ---
 
