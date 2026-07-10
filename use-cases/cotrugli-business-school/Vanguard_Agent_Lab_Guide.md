@@ -4,14 +4,16 @@ Complete Setup and Operations Guide
 
 COTRUGLI Business School  |  Vanguard MBA  |  Chasing Jarvis
 
-Dr. Tali Rezun  |  Version 3.1  |  June 2026
+Dr. Tali Rezun  |  Version 3.2  |  July 2026
 
 |  |  |
 | --- | --- |
 | **Track A** | opencode — free, recommended for demonstrations and students without a Claude subscription |
 | **Track B** | Claude Desktop with **Claude Cowork** (or Claude Code) — for students with Claude Pro ($20/month) |
 
-> **What changed in v3.0 — read this first.** You no longer type terminal commands. You give your agent **prompts**, and the agent installs and configures everything for you. Both harnesses can do this: opencode (Track A), and **Claude Cowork** (Track B) — Cowork runs in a local environment with file and shell access, so it can install software, edit configuration files, and build the ledger connector just like opencode. Claude Code works for this too. **Plain Claude Chat cannot** run this setup — it is not an agent and has no file access. So on Track B, always work in Claude Cowork (or Claude Code), never in the normal chat window.
+> **What changed in v3.2 — read this first.** Every MCP install prompt is now **split by track**. opencode and Claude Desktop do not just use different config *files* — they use different config *JSON*, so a single shared prompt errored on one of the two harnesses (this bit students in testing). Each optional MCP in Section 6 now has a **Track A (opencode)** prompt and a **Track B (Claude)** prompt with the exact JSON for that harness — use only the one for your tool. See the new format table in **Section 2.1**. The Curator (Section 6) is also now a **two-step** install — install the app, then a separate prompt connects its MCP *and* its usage skill, again split by track.
+>
+> **What changed in v3.0.** You no longer type terminal commands. You give your agent **prompts**, and the agent installs and configures everything for you. Both harnesses can do this: opencode (Track A), and **Claude Cowork** (Track B) — Cowork runs in a local environment with file and shell access, so it can install software, edit configuration files, and build the ledger connector just like opencode. Claude Code works for this too. **Plain Claude Chat cannot** run this setup — it is not an agent and has no file access. So on Track B, always work in Claude Cowork (or Claude Code), never in the normal chat window.
 
 # **1. What We Are Building**
 
@@ -105,7 +107,49 @@ On Track B, MCP servers are registered in Claude Desktop's configuration file. C
 
 Once an MCP is in this file, Claude Desktop automatically makes it available inside Cowork. There is **one** manual step a prompt cannot do for you: **after any change to this file you must fully quit and restart Claude Desktop** so the new MCP loads. The agent will remind you.
 
-| **CRITICAL — do not cross the streams** | opencode and Claude Desktop have **completely separate** MCP configurations. opencode's file is **opencode.jsonc** (inside your project folder). Claude Desktop's file is **claude_desktop_config.json** (system location above). When you prompt an opencode agent, it must edit opencode.jsonc, never the Claude file — and a Cowork agent must edit claude_desktop_config.json, never opencode.jsonc. Every install prompt below tells the agent which file to use; keep that line in. |
+| **CRITICAL — do not cross the streams** | opencode and Claude Desktop have **completely separate** MCP configurations — a different *file* **and** a different JSON *format* (see Section 2.1). opencode's file is **opencode.jsonc** (inside your project folder). Claude Desktop's file is **claude_desktop_config.json** (system location above). When you prompt an opencode agent, it must edit opencode.jsonc in opencode's format, never the Claude file — and a Cowork agent must edit claude_desktop_config.json in Claude's format, never opencode.jsonc. Every install prompt below is split by track and tells the agent which file and which format to use; keep those lines in. |
+| --- | --- |
+
+## **2.1 — The two MCP config formats (read this before any install prompt)**
+
+opencode and Claude Desktop don't just use different files — they use **different JSON**. A prompt written for one harness will error on the other. That is exactly why, in testing, the same install prompt worked on Claude but failed on opencode. So every install prompt in Section 6 is split into a **Track A (opencode)** version and a **Track B (Claude)** version. Use the one for your harness. Here is the whole difference in one table:
+
+| Concern | opencode — `opencode.jsonc` | Claude Desktop — `claude_desktop_config.json` |
+| --- | --- | --- |
+| **Top-level key** | `"mcp"` | `"mcpServers"` |
+| **Type field** | `"type": "local"` | none — omit it (Claude Code may use `"type": "stdio"`) |
+| **Command** | `"command": ["cmd", "arg1", "arg2"]` — one array | `"command": "cmd"` + `"args": ["arg1", "arg2"]` — split in two |
+| **Env vars** | `"environment": { "VAR": "value" }` | `"env": { "VAR": "value" }` |
+| **Enable flag** | `"enabled": true` | none |
+
+The same MCP in both formats, side by side (Excel example):
+
+**opencode.jsonc**
+```json
+{
+  "mcp": {
+    "excel": {
+      "type": "local",
+      "command": ["uvx", "excel-mcp-server", "stdio"],
+      "enabled": true
+    }
+  }
+}
+```
+
+**claude_desktop_config.json**
+```json
+{
+  "mcpServers": {
+    "excel": {
+      "command": "uvx",
+      "args": ["excel-mcp-server", "stdio"]
+    }
+  }
+}
+```
+
+| **RULE OF THUMB** | Almost every install snippet you find online (including in tool READMEs and in the Curator app's "Copy snippet" button) is written in **Claude's `mcpServers` format**. If you are on opencode, that snippet must be **translated** into the `mcp` format above before it will work. The Track A prompts in Section 6 already do this translation for you — but if you ever install something new, tell your opencode agent: *"translate this into opencode's `mcp` format and put it in opencode.jsonc."* |
 | --- | --- |
 
 # **3. Creating Your Project Folder**
@@ -331,7 +375,7 @@ MCPs give your agent extra abilities. You install them the same way you do every
 
 The required Cotrugli Ledger connection is covered separately in Section 8.
 
-| **WORKS ON BOTH TRACKS** | The install prompts below work in opencode (Track A) and in Claude Cowork / Claude Code (Track B). Each prompt tells the agent to register the MCP in the correct file for its harness — opencode.jsonc for opencode, claude_desktop_config.json for Claude. On Claude, remember to restart Claude Desktop afterwards so the MCP loads. |
+| **PICK THE PROMPT FOR YOUR TRACK** | Each MCP below has **two** install prompts: a **Track A (opencode)** prompt and a **Track B (Claude)** prompt. They are not interchangeable — the config file *and* the JSON format differ (see Section 2.1). **Copy only the prompt that matches your harness.** On Claude (Track B), remember to fully restart Claude Desktop after the MCP is added so it loads. |
 | --- | --- |
 
 ## **Excel MCP — Spreadsheets on opencode (Track A only)**
@@ -347,16 +391,19 @@ project so the agent can read, create, and update .xlsx files.
 Steps:
 1. Make sure a Python runner (uv / uvx) is installed; if not, install it for me.
 2. Register the Excel MCP in opencode.jsonc in THIS project folder (do not touch
-   any Claude configuration file), using:
+   any Claude configuration file). Use opencode's MCP format EXACTLY as below —
+   top-level key "mcp", "type": "local", and "command" as a single array:
        {
-         "mcpServers": {
+         "mcp": {
            "excel": {
-             "type": "stdio",
-             "command": "uvx",
-             "args": ["excel-mcp-server", "stdio"]
+             "type": "local",
+             "command": ["uvx", "excel-mcp-server", "stdio"],
+             "enabled": true
            }
          }
        }
+   If opencode.jsonc already has an "mcp" block, merge this "excel" entry into it
+   rather than overwriting the file.
 3. Confirm the MCP is available, then create a test workbook at
    data/project-tracker.xlsx with a header row (Date, Action ID, Stage, Evidence,
    Status) to prove it works.
@@ -370,21 +417,29 @@ The Curator is an open-source local knowledge system that gives your agent a **p
 
 Why this matters: instead of starting cold each time, your agent gains on-demand access to a growing neural network of your knowledge. The graph is split into **domains** — each domain can be **your own knowledge** or a **company brain** — and it **compounds over time**: the more you add, the more context your agent has. That context is exactly what makes the agent good at executing real tasks, because it can ground its work in what you (or your company) already know rather than guessing.
 
-**Documentation:**
+**Documentation (everything you need is reproduced below — you do not have to open these):**
 - Repository: https://github.com/talirezun/the-curator
 - User guide: https://github.com/talirezun/the-curator/blob/main/docs/user-guide.md
+- Install with a coding agent: https://github.com/talirezun/the-curator/blob/main/docs/user-guide.md#20-install-with-a-coding-agent
 - GitHub sync (optional): see docs/sync.md in the repository
 
-**INSTALL THE CURATOR — copy and paste this into your agent:**
+The Curator has **many installation options**; for this lab we use the **"install with a coding agent"** option — your agent does it. It is **two steps**, and only Step 2 differs by track:
+
+- **Step 1 — Install the Curator app** (same prompt on both tracks). This clones, builds, and launches the local Curator app so you can create your first domain. It does **not** connect the agent yet.
+- **Step 2 — Connect the Curator to your agent** (Track A and Track B prompts below). This registers the **my-curator MCP** so your agent can query the wiki, and installs the Curator **usage skill** so it uses those tools well.
+
+### **Step 1 — Install the Curator app (both tracks)**
+
+**INSTALL THE CURATOR APP — copy and paste this into your agent:**
 
 ```
-Please install "The Curator" on this machine for me.
+Please install "The Curator" app on this machine for me.
 Project: https://github.com/talirezun/the-curator
 User Guide: https://github.com/talirezun/the-curator/blob/main/docs/user-guide.md
 Steps:
 1. Verify Node.js 18+ is installed; if not, install it (Homebrew on macOS,
    nodejs.org installer on Windows, system package manager on Linux).
-2. git clone https://github.com/talirezun/the-curator.git into the user's home directory.
+2. git clone https://github.com/talirezun/the-curator.git into my home directory.
 3. cd the-curator && npm install
 4. On macOS: bash scripts/build-app.sh to build "The Curator.app", then move/copy
    it to /Applications and remind me to drag it from Finder into my Dock.
@@ -397,12 +452,115 @@ Steps:
 Do not edit any files outside ~/the-curator. Do not commit anything to my git config.
 Do not ask me for my API key — the in-app onboarding wizard will handle it.
 After the install finishes, summarise what you did in 5 bullet points, and add a
-note to AGENTS.md recording that the my-curator MCP is installed and how to reach
-it, so future sessions know it is available.
+note to AGENTS.md that the Curator app is installed at ~/the-curator, that it must
+be running for the second brain to work, and that the my-curator MCP will be
+connected next (Step 2). Do NOT try to register the MCP yet — that is Step 2.
 ```
 
-| **TIP — set up your first domain** | After install, the onboarding wizard asks you to create your first domain. Make one domain for your **personal** knowledge and, if relevant, a separate domain for your **company** knowledge. Ingest a few real documents early — the agent's usefulness compounds as the graph grows. The user guide walks through ingesting sources and querying domains. |
+| **TIP — set up your first domain** | The onboarding wizard asks you to create your first domain. Make one domain for your **personal** knowledge and, if relevant, a separate domain for your **company** knowledge. Ingest a few real documents early — the agent's usefulness compounds as the graph grows. Keep the Curator app **running** whenever you want your agent to use the second brain (the MCP talks to it locally). |
 | --- | --- |
+
+### **Step 2 — Connect the Curator to your agent (MCP + skill)**
+
+Now register the second brain with your agent. The Curator MCP server is the file `~/the-curator/mcp/server.js`, launched with `node`. The Curator app also generates a ready-made snippet for you: open the app → **Settings → "My Curator" → "Copy snippet"**. **That snippet is always in Claude's `mcpServers` format** — perfect for Track B, but on Track A your agent must translate it to opencode's format (the prompt below does this).
+
+Alongside the MCP, the Curator ships a **usage skill** — a playbook that teaches your agent how to read, write, and maintain the wiki without creating broken links or duplicates. It matters: the MCP gives the agent the *tools*; the skill teaches it the *rules*. Install both.
+
+**TRACK A — opencode. INSTALL CURATOR MCP + SKILL — copy and paste this into opencode:**
+
+```
+The Curator app is installed and running. Connect it to THIS opencode project.
+Work only in opencode.jsonc in this project folder — never touch any Claude config
+file. Explain each step in plain language.
+
+1. Find the Curator MCP server file. It is at ~/the-curator/mcp/server.js (expand ~
+   to my real home directory to get an absolute path). If I have the app open, I can
+   also give you the snippet from Settings -> "My Curator" -> "Copy snippet" — but
+   note that snippet is in Claude's format, so you must TRANSLATE it, not paste it.
+
+2. Register the my-curator MCP in opencode.jsonc using opencode's format EXACTLY
+   (top-level "mcp", "type": "local", "command" as one array):
+       {
+         "mcp": {
+           "my-curator": {
+             "type": "local",
+             "command": ["node", "<ABSOLUTE path to ~/the-curator/mcp/server.js>"],
+             "enabled": true
+           }
+         }
+       }
+   If the Curator snippet included an env block (for example a DOMAINS_PATH), add it
+   as an "environment" object on the same entry — opencode uses "environment", NOT
+   "env":
+             "environment": { "DOMAINS_PATH": "<the value from the snippet>" }
+   If opencode.jsonc already has an "mcp" block, merge this "my-curator" entry into
+   it rather than overwriting the file.
+
+3. Install the Curator usage skill for opencode. opencode has no ~/.claude/skills
+   folder, so instead:
+   a. Download this file into a "curator-skill/" folder in THIS project:
+          https://raw.githubusercontent.com/talirezun/conduit-agent/main/use-cases/cotrugli-business-school/curator-skill/my-curator.md
+      (save it as curator-skill/my-curator.md). If the download fails, ask me for
+      the file — my instructor provides it alongside AGENTS.md.
+   b. Register it in opencode.jsonc so opencode always reads it, by adding an
+      "instructions" array at the top level (merge if one already exists):
+          "instructions": ["curator-skill/my-curator.md"]
+
+4. Reload opencode / restart the session so both the MCP and the instructions load.
+   Then verify: call the my-curator "list_domains" tool and show me my domains.
+   If it fails, check that the Curator app/server is running.
+
+5. Record in AGENTS.md (Memory / Long-Term Memory section): that the my-curator MCP
+   is connected, the path curator-skill/my-curator.md for the skill, and that the
+   Curator app must be running for the second brain to work.
+After setup, summarise what you did in 5 bullet points.
+```
+
+**TRACK B — Claude (Cowork / Claude Code). INSTALL CURATOR MCP + SKILL — copy and paste this into your agent:**
+
+```
+The Curator app is installed and running. Connect it to Claude.
+Work only in claude_desktop_config.json (system location) — never touch opencode.jsonc.
+Explain each step in plain language.
+
+1. Get the MCP snippet: open the Curator app -> Settings -> "My Curator" ->
+   "Copy snippet". It is already in Claude's format. Paste it to me. (If I cannot,
+   the server file is ~/the-curator/mcp/server.js — build the entry yourself.)
+
+2. Merge that snippet under the "mcpServers" key in claude_desktop_config.json,
+   WITHOUT deleting any MCP already there. It looks like:
+       {
+         "mcpServers": {
+           "my-curator": {
+             "command": "node",
+             "args": ["<ABSOLUTE path to ~/the-curator/mcp/server.js>"]
+           }
+         }
+       }
+   If the snippet included an env block (for example a DOMAINS_PATH), keep it as an
+   "env" object on the same entry — Claude uses "env", NOT "environment":
+             "env": { "DOMAINS_PATH": "<the value from the snippet>" }
+
+3. Install the Curator usage skill:
+   - Claude Code: run these so the skill lives in ~/.claude/skills/my-curator/ :
+         mkdir -p ~/.claude/skills/my-curator
+         curl -L https://raw.githubusercontent.com/talirezun/the-curator/main/claude-skills/my-curator/SKILL.md -o ~/.claude/skills/my-curator/SKILL.md
+         curl -L https://raw.githubusercontent.com/talirezun/the-curator/main/claude-skills/my-curator/examples.md -o ~/.claude/skills/my-curator/examples.md
+   - Claude Cowork / Claude Desktop: download those two files and add them to my
+     project's Knowledge (the + in the Files section), or paste SKILL.md (minus its
+     frontmatter) into the project's custom instructions.
+
+4. Remind me to FULLY quit and restart Claude Desktop (Cmd+Q on macOS, or fully
+   exit on Windows) so the new MCP loads — Claude will not see it until you do.
+
+5. After I restart, verify: call the my-curator "list_domains" tool and show me my
+   domains. If it fails, confirm the Curator app is running.
+
+6. Record in AGENTS.md (Memory / Long-Term Memory section): that the my-curator MCP
+   is connected, where the skill files live, and that the Curator app must be running
+   for the second brain to work.
+After setup, summarise what you did in 5 bullet points.
+```
 
 ## **Atomic Mail MCP — Agentic Email (Optional)**
 
@@ -425,9 +583,23 @@ npx --package=@atomicmail/agent-skill atomicmail jmap_request --ops-file send_ma
 npx --package=@atomicmail/agent-skill atomicmail help
 ```
 
-**MCP registration (the agent adds this to the right config file for your harness):**
+**MCP registration differs by harness** (this is why the install prompt is split below). The MCP command is `npx -y @atomicmail/mcp` either way; only the JSON shape changes (see Section 2.1):
 
+**opencode — opencode.jsonc**
+```json
+{
+  "mcp": {
+    "atomicmail": {
+      "type": "local",
+      "command": ["npx", "-y", "@atomicmail/mcp"],
+      "enabled": true
+    }
+  }
+}
 ```
+
+**Claude Desktop — claude_desktop_config.json**
+```json
 {
   "mcpServers": {
     "atomicmail": {
@@ -438,12 +610,13 @@ npx --package=@atomicmail/agent-skill atomicmail help
 }
 ```
 
-**INSTALL ATOMIC MAIL — copy and paste this into your agent:**
+**TRACK A — opencode. INSTALL ATOMIC MAIL — copy and paste this into opencode:**
 
 ```
 Please set up Atomic Mail for this agent so it has its own agentic mailbox.
 This is an agent-owned mailbox — there is no human inbox login; you (the agent)
-hold the credentials and are the only one who accesses it.
+hold the credentials and are the only one who accesses it. Work only in
+opencode.jsonc in this project folder — never touch any Claude config file.
 
 Steps:
 1. Ask me what username I want for the agent's mailbox (for example a short handle
@@ -454,11 +627,48 @@ Steps:
    Capture the account it returns and store any credentials securely in the tool's
    own credential store / an environment variable — NEVER in AGENTS.md or any file
    in this project.
-3. Register the Atomic Mail MCP in the config file for the harness you are running in:
-   - opencode -> opencode.jsonc in this project folder
-   - Claude Cowork / Claude Code -> claude_desktop_config.json (system location),
-     and remind me to fully restart Claude Desktop afterwards
-   using:
+3. Register the Atomic Mail MCP in opencode.jsonc using opencode's format EXACTLY
+   (top-level "mcp", "type": "local", "command" as one array):
+       {
+         "mcp": {
+           "atomicmail": {
+             "type": "local",
+             "command": ["npx", "-y", "@atomicmail/mcp"],
+             "enabled": true
+           }
+         }
+       }
+   If opencode.jsonc already has an "mcp" block, merge this "atomicmail" entry into
+   it rather than overwriting the file.
+4. Verify it works: run a JMAP "Mailbox/get" request (or send yourself a short test
+   message and read it back) and confirm the mailbox is live.
+5. Record in AGENTS.md (Communication Layer): the mailbox username/address you
+   registered, and that Atomic Mail is installed. Do NOT record credentials.
+6. Remind me of the email rules: you never send an email without my explicit
+   "confirm send", and you always show me the draft first.
+After setup, summarise what you did in 5 bullet points.
+```
+
+**TRACK B — Claude (Cowork / Claude Code). INSTALL ATOMIC MAIL — copy and paste this into your agent:**
+
+```
+Please set up Atomic Mail for this agent so it has its own agentic mailbox.
+This is an agent-owned mailbox — there is no human inbox login; you (the agent)
+hold the credentials and are the only one who accesses it. Work only in
+claude_desktop_config.json (system location) — never touch opencode.jsonc.
+
+Steps:
+1. Ask me what username I want for the agent's mailbox (for example a short handle
+   based on my project, like "petra-agent").
+2. Register the mailbox by running:
+       npx --package=@atomicmail/agent-skill atomicmail register --username "<the
+       username I give you>"
+   Capture the account it returns and store any credentials securely in the tool's
+   own credential store / an environment variable — NEVER in AGENTS.md or any file
+   in this project.
+3. Register the Atomic Mail MCP under the "mcpServers" key in
+   claude_desktop_config.json, WITHOUT deleting any MCP already there, using
+   Claude's format (separate "command" and "args"):
        {
          "mcpServers": {
            "atomicmail": {
@@ -467,6 +677,7 @@ Steps:
            }
          }
        }
+   Then remind me to FULLY quit and restart Claude Desktop so the MCP loads.
 4. Verify it works: run a JMAP "Mailbox/get" request (or send yourself a short test
    message and read it back) and confirm the mailbox is live.
 5. Record in AGENTS.md (Communication Layer): the mailbox username/address you
@@ -862,9 +1073,13 @@ LEDGER CONNECTION (required)
 
 # **11. Frequently Asked Questions**
 
+### **Why are there separate opencode and Claude prompts now?**
+
+Because opencode and Claude Desktop use **different MCP config formats** — not just a different file, but different JSON (top-level key, command shape, and env-var key all differ; see Section 2.1). In testing, a single shared prompt worked on Claude but errored on opencode. So every MCP install prompt in Section 6 is split into a **Track A (opencode)** and a **Track B (Claude)** version. Copy only the one for your harness and it will just work. If you ever mix them up, the symptom is the agent writing a config the harness cannot parse and the MCP never appearing.
+
 ### **Do I need a SKILL.md file?**
 
-No. For this lab, everything lives in one file: AGENTS.md (renamed CLAUDE.md if you use Claude Desktop). There is no separate SKILL.md to create or manage. We keep it to a single file on purpose, so nothing is confusing.
+You never **write** one — for this lab your own agent config lives in a single file, AGENTS.md (renamed CLAUDE.md on Claude Desktop). The one exception is optional and **pre-made for you**: if you install The Curator (Section 6), it ships a ready-made usage skill so your agent handles the second brain well. You don't author it — the Step 2 prompt just downloads it (into `curator-skill/my-curator.md` for opencode, or `~/.claude/skills/my-curator/` for Claude Code). You still never create a skill by hand.
 
 ### **Can I run the setup in the normal Claude chat window?**
 
@@ -900,7 +1115,7 @@ Yes. The ledger connection is a required part of this lab — it is what makes y
 
 ### **Can I add more MCPs after the course?**
 
-Yes. Just prompt your agent to install the MCP you want and to register it in the correct configuration file (opencode.jsonc for opencode; claude_desktop_config.json for Claude Desktop, then restart) — and to record it in AGENTS.md. The agent handles the rest.
+Yes. Just prompt your agent to install the MCP you want and to register it in the correct configuration file **and format** (opencode.jsonc in opencode's `mcp` format; claude_desktop_config.json in Claude's `mcpServers` format, then restart) — and to record it in AGENTS.md. See Section 2.1 for the two formats; most README snippets are in Claude's format, so on opencode tell the agent to translate. The agent handles the rest.
 
 ### **What if a tool or MCP is unavailable during a session?**
 
@@ -911,4 +1126,4 @@ The agent notes the failure clearly and continues with the tools it has. Your se
 Both opencode and Claude (via Cowork / Claude Code) can use the GitHub CLI (gh). If you need it, prompt your agent to check for the GitHub CLI and install/authenticate it (cli.github.com, free; "gh auth login"). The agent can then run read-only gh commands as defined in your mandate.
 
 *Vanguard Agent Lab | COTRUGLI Business School | Vanguard MBA | Chasing Jarvis — Module 5+*
-*Version 3.1 — Dr. Tali Rezun — June 2026 (live Cotrugli DLT connector)*
+*Version 3.2 — Dr. Tali Rezun — July 2026 (per-harness MCP install prompts; two-step Curator install)*
