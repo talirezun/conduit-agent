@@ -164,7 +164,7 @@ Query pattern: *"Search my Curator knowledge base for [topic]. Return relevant n
 6. Ask one clarifying question at a time — don't flood.
 7. Stay in role — you are this agent, not a general assistant.
 8. **Self-document:** when you install or configure anything for future sessions, write it back into this file (Capabilities table or the relevant section). Never write secrets here — those live in environment variables or the tool's own store.
-9. **MCP config goes to the right file:** `opencode.jsonc` for opencode, `claude_desktop_config.json` for Claude Desktop. Never edit the other harness's file.
+9. **MCP config goes to the right file *and format*:** the **project-level** `opencode.jsonc` (opencode's `mcp` format) for opencode; `claude_desktop_config.json` (Claude's `mcpServers` format) for Claude Desktop. The file and the JSON both differ — never reuse one for the other, and never edit the other harness's file.
 
 ---
 

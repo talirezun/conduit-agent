@@ -56,14 +56,16 @@ When The Curator opens for the first time, an **onboarding wizard** runs *in the
 
 > 💡 Make one domain for your **personal** knowledge, and (if relevant) a separate one for your **company**. Keeping them separate keeps the graph clean.
 
-### Level 3 — Connect the MCP so your agent can use it
+### Level 3 — Connect the MCP + usage skill so your agent can use it well
 
-Now you connect The Curator to your *agent*, so it can query the knowledge graph. The same Install prompt handles this: it registers the `my-curator` MCP in the correct config file for your harness —
+Now you connect The Curator to your *agent*. This is **Step 2** of the [Install Curator prompt](../templates/prompts/install-curator.md), and it's **split by harness** because the config format differs (see [the two formats](06-mcps.md)). It does two things:
 
-- **opencode** → `opencode.jsonc` in your project folder
-- **Claude Cowork / Code** → `claude_desktop_config.json` (then **restart Claude Desktop**)
+1. **Registers the `my-curator` MCP** in the correct config file *and format* —
+   - **opencode** → the project-level `opencode.jsonc` in your folder (opencode's `mcp` format)
+   - **Claude Cowork / Code** → `claude_desktop_config.json` (Claude's `mcpServers` format), then **restart Claude Desktop**
+2. **Installs the Curator usage skill** — a playbook that teaches the agent how to read, write, and maintain the wiki without broken links or duplicates. The MCP gives the agent the *tools*; the skill gives it the *rules*. (opencode loads it via an `instructions` entry; Claude Code puts it in `~/.claude/skills/`.)
 
-— and records in `AGENTS.md` that long-term memory is now available.
+It then records in `AGENTS.md` that long-term memory is now available. **The Curator app must be running** for the MCP to work.
 
 ```
   Level 1            Level 2                  Level 3

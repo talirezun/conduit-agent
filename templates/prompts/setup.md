@@ -24,8 +24,11 @@ and explain each step in plain language as you go:
 
 4. If you create or edit an MCP configuration file, edit the file that belongs
    to the harness you are running in:
-   - opencode -> opencode.jsonc in THIS project folder
-   - Claude Cowork / Claude Code -> claude_desktop_config.json (system location)
+   - opencode -> the project-level opencode.jsonc in THIS project folder
+     (NOT the global ~/.config/opencode config — keep MCPs scoped to this agent),
+     using opencode's "mcp" format
+   - Claude Cowork / Claude Code -> claude_desktop_config.json (system location),
+     using Claude's "mcpServers" format
    Never edit the other harness's configuration file. If you are in Claude,
    remind me that I must fully restart Claude Desktop after the file changes.
 

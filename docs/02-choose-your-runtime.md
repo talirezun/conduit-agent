@@ -103,12 +103,12 @@ Your agent runs inside a **harness**: an app that reads your files, runs setup, 
 
 ## One thing to remember: don't cross the streams
 
-opencode and Claude Desktop keep their MCP settings in **different files**:
+opencode and Claude Desktop keep their MCP settings in **different files** — and in **different JSON formats**:
 
-- **opencode** → `opencode.jsonc` *inside your project folder*
-- **Claude Desktop** → `claude_desktop_config.json` *(system location)* — and you must **restart Claude Desktop** after any change.
+- **opencode** → the project-level `opencode.jsonc` *inside your project folder* (opencode's `mcp` format)
+- **Claude Desktop** → `claude_desktop_config.json` *(system location)*, in Claude's `mcpServers` format — and you must **restart Claude Desktop** after any change.
 
-You never edit these by hand — the agent does, and every install prompt tells it which file to use. Just don't ask an opencode agent to edit the Claude file, or vice-versa.
+You never edit these by hand — the agent does, and every install prompt gives it the right file *and* the right format. Just don't ask an opencode agent to edit the Claude file (or reuse Claude's JSON on opencode), or vice-versa. → [the two formats, side by side](06-mcps.md)
 
 ---
 
