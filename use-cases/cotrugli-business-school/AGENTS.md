@@ -42,7 +42,7 @@ Agent name:       [AGENT_NAME]
 Owner:            [YOUR_FULL_NAME]
 Organisation:     [YOUR_ORGANISATION — leave blank for Personal config]
 Configuration:    [PERSONAL / COMPANY]
-Version:          1.2
+Version:          1.3
 ```
 
 ---
@@ -602,10 +602,12 @@ The Cotrugli Ledger records tamper-evident hashes of agent lifecycle events on t
 
 **The connector — one thin file.** All ledger communication goes through a single function, `send_agent_event()`, in a single file (`ledger_connector.py`), plus a helper `verify_receipt(receipt_id)`. The agent builds this file during setup using the Ledger Connection Prompt in the student guide. The agent never changes when the backend changes — only this one file does.
 
-**Credentials — two values, read from the environment (never written into this file):**
+**Credentials — the student supplies ONE value (their API key). Read from the environment, never written into this file:**
 ```
-LEDGER_BASE_URL     the sandbox host
-LEDGER_API_KEY      your API key
+LEDGER_API_KEY      the student's API key — the ONLY value the student supplies
+LEDGER_BASE_URL     the ledger host — FIXED for everyone; the connector defaults it to
+                    https://agents.cotrugli.tech when the env var is unset, so the
+                    student never has to provide it (override only if the host changes)
 ```
 There is no tenant ID. The server derives the tenant from the API key, so the agent never sets or sends one.
 
@@ -709,7 +711,7 @@ Header:  X-API-Key: {LEDGER_API_KEY}    <- tenant derived from key, same as the 
 
 ```
 Connector file:   [AGENT_FILLS_THIS — e.g. ./ledger_connector.py]
-Base URL:         [AGENT_FILLS_THIS — e.g. read from env LEDGER_BASE_URL, do not print the value]
+Base URL:         [AGENT_FILLS_THIS — e.g. from env LEDGER_BASE_URL, default https://agents.cotrugli.tech]
 Endpoint:         [AGENT_FILLS_THIS — e.g. POST {LEDGER_BASE_URL}/integrations/agent/events]
 Verify endpoint:  [AGENT_FILLS_THIS — e.g. GET /receipts/{URL-encoded receipt_id}/proof-bundle]
 Credentials read from env: [AGENT_FILLS_THIS — e.g. LEDGER_BASE_URL, LEDGER_API_KEY]
@@ -736,7 +738,7 @@ The agent installs and configures everything below during setup, driven by the p
      relevant layer section so the next session knows it exists. Do not store secrets here. -->
 
 **MCP registration target by harness:**
-- **opencode:** register MCP servers in `opencode.jsonc` inside this project folder.
+- **opencode:** register MCP servers in the **project-level** `opencode.jsonc` inside this project folder — **not** the global `~/.config/opencode/opencode.json`. This keeps each agent's MCPs scoped to its own folder (your Personal and Company agents don't share tools).
 - **Claude Desktop (Cowork / Claude Code):** register MCP servers in `claude_desktop_config.json` (system location). They are then bridged into Cowork automatically by Claude Desktop. **Restart Claude Desktop after any change.**
 
 ---
@@ -749,8 +751,9 @@ The Setup Prompt creates this automatically. You do not need to make these folde
 [your-agent-folder]/          ← your project folder (create one per agent)
 │
 ├── AGENTS.md                 ← this file (or CLAUDE.md for Claude Desktop)
-├── opencode.jsonc            ← opencode MCP configuration (auto-created — opencode only)
+├── opencode.jsonc            ← project-scoped MCP config (auto-created — opencode only)
 ├── ledger_connector.py       ← the thin ledger connector (built during setup)
+├── .env                      ← gitignored — holds LEDGER_API_KEY (auto-created)
 ├── memory.md                 ← short-term session memory (auto-created on first session)
 ├── email-log.md              ← email activity log (auto-created if using Atomic Mail)
 │
@@ -793,6 +796,6 @@ The Setup Prompt creates this automatically. You do not need to make these folde
 
 ---
 
-*Vanguard Execution Agent v1.2 — COTRUGLI Business School · Vanguard MBA · Chasing Jarvis (live Cotrugli DLT connector — two-parameter connection: base URL + API key)*
+*Vanguard Execution Agent v1.3 — COTRUGLI Business School · Vanguard MBA · Chasing Jarvis (live Cotrugli DLT connector — single-value connection: API key only, base URL built in; project-scoped opencode MCPs)*
 *opencode: place as AGENTS.md in project folder*
 *Claude Desktop: rename to CLAUDE.md, add as project knowledge; run setup with Claude Cowork or Claude Code*

@@ -4,14 +4,16 @@ Complete Setup and Operations Guide
 
 COTRUGLI Business School  |  Vanguard MBA  |  Chasing Jarvis
 
-Dr. Tali Rezun  |  Version 3.3  |  July 2026
+Dr. Tali Rezun  |  Version 3.4  |  July 2026
 
 |  |  |
 | --- | --- |
 | **Track A** | opencode — free, recommended for demonstrations and students without a Claude subscription |
 | **Track B** | Claude Desktop with **Claude Cowork** (or Claude Code) — for students with Claude Pro ($20/month) |
 
-> **What changed in v3.3 — read this first.** The Cotrugli Ledger connection is now **two values, not three**. The API key is bound to your tenant server-side, so the tenant is derived from the key — there is **no `LEDGER_TENANT_ID`** and you must **not** send an `X-Tenant` header (a mismatched one is rejected with HTTP 403). Reads (proof-bundle) now authenticate with `X-API-Key` too, and `Authorization: Bearer <key>` is accepted anywhere `X-API-Key` is. See Section 8.
+> **What changed in v3.4 — read this first.** The Cotrugli Ledger now needs **only one value from your instructor: your personal API key.** The ledger address (`https://agents.cotrugli.tech`) is built into the docs as the default, so you no longer supply a base URL. Also new: opencode MCPs are installed **project-scoped** (in this agent's `opencode.jsonc`, not the global opencode config) so each agent keeps its own tools — see Section 2.1.
+>
+> **What changed in v3.3.** The Cotrugli Ledger connection dropped from three values to two: the API key is bound to your tenant server-side, so the tenant is derived from the key — there is **no `LEDGER_TENANT_ID`** and you must **not** send an `X-Tenant` header (a mismatched one is rejected with HTTP 403). Reads (proof-bundle) authenticate with `X-API-Key`, and `Authorization: Bearer <key>` is accepted anywhere `X-API-Key` is. See Section 8.
 >
 > **What changed in v3.2.** Every MCP install prompt is now **split by track**. opencode and Claude Desktop do not just use different config *files* — they use different config *JSON*, so a single shared prompt errored on one of the two harnesses (this bit students in testing). Each optional MCP in Section 6 now has a **Track A (opencode)** prompt and a **Track B (Claude)** prompt with the exact JSON for that harness — use only the one for your tool. See the new format table in **Section 2.1**. The Curator (Section 6) is also now a **two-step** install — install the app, then a separate prompt connects its MCP *and* its usage skill, again split by track.
 >
@@ -154,6 +156,9 @@ The same MCP in both formats, side by side (Excel example):
 | **RULE OF THUMB** | Almost every install snippet you find online (including in tool READMEs and in the Curator app's "Copy snippet" button) is written in **Claude's `mcpServers` format**. If you are on opencode, that snippet must be **translated** into the `mcp` format above before it will work. The Track A prompts in Section 6 already do this translation for you — but if you ever install something new, tell your opencode agent: *"translate this into opencode's `mcp` format and put it in opencode.jsonc."* |
 | --- | --- |
 
+| **PROJECT-SCOPED, NOT GLOBAL (opencode)** | opencode can register an MCP in **two** places: a **global** config (`~/.config/opencode/opencode.json`, which loads that MCP into *every* opencode project on your machine) or a **project** config (`opencode.jsonc` inside this agent's folder, which loads it *only here*). **This lab always uses the project file.** That way each agent owns its own tools — your Personal Agent and your Company Agent don't share MCPs, and nothing leaks into your other opencode work. Every Track A prompt in this guide already targets the project `opencode.jsonc`; if an agent ever offers to edit the global opencode config, tell it to use the project file in this folder instead. |
+| --- | --- |
+
 # **3. Creating Your Project Folder**
 
 Each agent lives in its own folder on your computer. You create one folder per agent. If you build both a Personal Agent and a Company Agent, you create two folders.
@@ -187,8 +192,9 @@ This is what your folder will look like after the Setup Prompt runs. You do not 
 [your-agent-folder]/              <- you create this one folder
 │
 ├── AGENTS.md                     <- master agent config (you place this)
-├── opencode.jsonc                <- MCP config (agent creates — opencode only)
+├── opencode.jsonc                <- project-scoped MCP config (agent creates — opencode only)
 ├── ledger_connector.py           <- ledger connector (agent builds during setup)
+├── .env                          <- gitignored — holds your LEDGER_API_KEY (agent creates)
 ├── memory.md                     <- session memory (agent creates)
 ├── email-log.md                  <- email log (if Atomic Mail installed)
 │
@@ -246,7 +252,8 @@ and explain each step in plain language as you go:
 
 4. If you create or edit an MCP configuration file, edit the file that belongs
    to the harness you are running in:
-   - opencode -> opencode.jsonc in THIS project folder
+   - opencode -> the project-level opencode.jsonc in THIS project folder
+     (NOT the global ~/.config/opencode config — keep these MCPs scoped to this agent)
    - Claude Cowork / Claude Code -> claude_desktop_config.json (system location)
    Never edit the other harness's configuration file. If you are in Claude,
    remind me that I must fully restart Claude Desktop after the file changes.
@@ -692,6 +699,19 @@ After setup, summarise what you did in 5 bullet points.
 | **RULE** | The agent never sends an email without explicit confirmation. It always presents a draft and waits for you to say "confirm send" before using any email tool. |
 | --- | --- |
 
+## **If an MCP doesn't show up — quick fixes**
+
+Most MCP problems are one of these. Tell your agent what you see and point it at the matching fix.
+
+| Symptom | Track A — opencode | Track B — Claude |
+| --- | --- | --- |
+| **The tool isn't available at all** | Is the server in the **project** `opencode.jsonc` (this folder), not the global config? Ask the agent to re-open/reload the project so it re-reads the file. | Did you **fully quit and restart** Claude Desktop (Cmd+Q, not just close the window)? MCPs only load on a full restart. |
+| **The config "looks right" but errors** | Wrong format — opencode needs the `mcp` key, `"type": "local"`, and `command` as an **array** (Section 2.1). Ask: *"fix this to opencode's mcp format."* | Wrong format — Claude needs the `mcpServers` key with separate `command` + `args`. Ask: *"fix this to Claude's mcpServers format."* |
+| **Curator tools fail (`list_domains` errors)** | Is **The Curator app running**? The MCP talks to it locally — start the app, then retry. | Same — start The Curator app, then retry. |
+| **Ledger returns an error** | `401` = key missing/unknown · `403` = you sent `X-Tenant` (don't) · `422` = missing `Content-Type` or bad payload · `429` = rate limit. See Section 8. | Same codes — see Section 8. |
+
+When in doubt, paste the exact error to your agent and ask it to diagnose and fix — it edits the config for you.
+
 # **7. Running Your Sessions**
 
 ## **First session — Create your Commitment**
@@ -763,6 +783,9 @@ Produce my Run Report and save it to reports/run-reports/RUN-[today's date].md
 
 The Cotrugli Ledger records tamper-evident hashes of your agent's lifecycle events. **Connecting to the ledger is a required part of this lab.** It does not change how your agent works locally — it adds an auditable, tamper-evident trail that aligns with the EU AI Act.
 
+| **ALL YOU NEED IS YOUR API KEY** | The only thing your instructor gives you for the ledger is **your personal API key**. The ledger address is already built into the connector, and there is no tenant ID or password. When the agent asks, paste your key — that's the whole setup. |
+| --- | --- |
+
 ### **What gets sent to the ledger**
 
 Only a hash (fingerprint) of each event — never the raw content. No business data leaves your computer in readable form. This is GDPR-correct by design.
@@ -771,7 +794,7 @@ Only a hash (fingerprint) of each event — never the raw content. No business d
 
 All communication with the ledger goes through a single function, send_agent_event(), in a single file the agent builds for you: ledger_connector.py. This is the only thing that ever changes when the backend changes — your agent never does. You build it with one prompt.
 
-| **YOU WILL NEED** | Your instructor gives you **two values**: a **base URL** (the ledger host) and an **API key**. Keep these handy. You give them to the agent when it asks, and the agent stores them as environment variables (`LEDGER_BASE_URL`, `LEDGER_API_KEY`) — never in any file in your project. **There is no tenant / participant ID** — the server derives the tenant from your API key, so you never set or send one. |
+| **YOU WILL NEED** | **One value: your API key.** The ledger address is fixed for everyone (`https://agents.cotrugli.tech`) and is already the default in the connector, so you don't provide it. **There is no tenant / participant ID** — the server derives the tenant from your API key. You don't need to understand "environment variables": just paste your key when the agent asks, and the agent stores it safely (in a gitignored `.env` / an environment variable) and **never** writes it into AGENTS.md or any file it might share. |
 | --- | --- |
 
 | **NOTE — this is a real connectivity test** | Earlier versions of this lab ran on synthetic data only. You are now connecting to the **live Cotrugli DLT sandbox** and submitting real lifecycle events. Your API key is now **bound server-side to your own tenant** — every student's receipts land in their own drawer, and no two students' data ever mix. Because the tenant comes from the key, you send only your API key; do **not** send an `X-Tenant` header (if you do and it disagrees with the key, the server returns HTTP 403). |
@@ -791,10 +814,15 @@ in plain language as you go. I am not a developer — you do all the technical w
    wire format and hash the content. This separation is the whole point: when the
    backend changes later, only this file changes.
 
-2. Ask me for two values and store them as environment variables (NEVER write
-   them into ledger_connector.py, AGENTS.md, or any file in this project):
-       LEDGER_BASE_URL    the sandbox host
+2. Ask me for ONE value — my API key — and store it as the environment variable
+   LEDGER_API_KEY (NEVER write it into ledger_connector.py, AGENTS.md, or any file
+   that could be shared). Storing it in a local .env is fine — if you do, also add
+   ".env" to .gitignore (create .gitignore if it doesn't exist) so my key can never
+   be committed.
        LEDGER_API_KEY     my API key
+   The base URL is FIXED and you already know it: read LEDGER_BASE_URL from the
+   environment but DEFAULT it to https://agents.cotrugli.tech when it is not set,
+   so I never have to provide it.
    There is NO LEDGER_TENANT_ID — the server derives the tenant from the API key.
    Never send an X-Tenant header in any request.
 
@@ -1077,7 +1105,7 @@ COMMUNICATION LAYER (optional)
 [ ] Atomic Mail MCP — agent mailbox username:
 
 LEDGER CONNECTION (required)
-[ ] Connected to Cotrugli Ledger — base URL + API key from instructor
+[ ] Connected to Cotrugli Ledger — your API key from instructor (ledger address is built in)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
@@ -1121,7 +1149,7 @@ Tell your agent: "My original Commitment needs to change. The new target is [new
 
 ### **Do I have to connect to the Cotrugli Ledger?**
 
-Yes. The ledger connection is a required part of this lab — it is what makes your agent's project trail auditable and tamper-evident, on the live Cotrugli DLT sandbox. Your instructor gives you **two values** (base URL + API key), and the Ledger Connection prompt (Section 8) builds the connector for you. There is no tenant ID — the server derives the tenant from your API key, so you never set or send one.
+Yes. The ledger connection is a required part of this lab — it is what makes your agent's project trail auditable and tamper-evident, on the live Cotrugli DLT sandbox. Your instructor gives you just **one value — your API key** — and the Ledger Connection prompt (Section 8) builds the connector for you. The ledger address is built in, and there is no tenant ID (the server derives the tenant from your API key), so you never set or send one.
 
 ### **Can I add more MCPs after the course?**
 
@@ -1136,4 +1164,4 @@ The agent notes the failure clearly and continues with the tools it has. Your se
 Both opencode and Claude (via Cowork / Claude Code) can use the GitHub CLI (gh). If you need it, prompt your agent to check for the GitHub CLI and install/authenticate it (cli.github.com, free; "gh auth login"). The agent can then run read-only gh commands as defined in your mandate.
 
 *Vanguard Agent Lab | COTRUGLI Business School | Vanguard MBA | Chasing Jarvis — Module 5+*
-*Version 3.3 — Dr. Tali Rezun — July 2026 (two-parameter ledger connection: base URL + API key, tenant derived from key)*
+*Version 3.4 — Dr. Tali Rezun — July 2026 (single-value ledger connection: API key only, base URL built in; project-scoped opencode MCPs)*
