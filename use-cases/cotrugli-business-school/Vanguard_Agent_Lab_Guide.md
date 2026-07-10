@@ -4,14 +4,16 @@ Complete Setup and Operations Guide
 
 COTRUGLI Business School  |  Vanguard MBA  |  Chasing Jarvis
 
-Dr. Tali Rezun  |  Version 3.2  |  July 2026
+Dr. Tali Rezun  |  Version 3.3  |  July 2026
 
 |  |  |
 | --- | --- |
 | **Track A** | opencode — free, recommended for demonstrations and students without a Claude subscription |
 | **Track B** | Claude Desktop with **Claude Cowork** (or Claude Code) — for students with Claude Pro ($20/month) |
 
-> **What changed in v3.2 — read this first.** Every MCP install prompt is now **split by track**. opencode and Claude Desktop do not just use different config *files* — they use different config *JSON*, so a single shared prompt errored on one of the two harnesses (this bit students in testing). Each optional MCP in Section 6 now has a **Track A (opencode)** prompt and a **Track B (Claude)** prompt with the exact JSON for that harness — use only the one for your tool. See the new format table in **Section 2.1**. The Curator (Section 6) is also now a **two-step** install — install the app, then a separate prompt connects its MCP *and* its usage skill, again split by track.
+> **What changed in v3.3 — read this first.** The Cotrugli Ledger connection is now **two values, not three**. The API key is bound to your tenant server-side, so the tenant is derived from the key — there is **no `LEDGER_TENANT_ID`** and you must **not** send an `X-Tenant` header (a mismatched one is rejected with HTTP 403). Reads (proof-bundle) now authenticate with `X-API-Key` too, and `Authorization: Bearer <key>` is accepted anywhere `X-API-Key` is. See Section 8.
+>
+> **What changed in v3.2.** Every MCP install prompt is now **split by track**. opencode and Claude Desktop do not just use different config *files* — they use different config *JSON*, so a single shared prompt errored on one of the two harnesses (this bit students in testing). Each optional MCP in Section 6 now has a **Track A (opencode)** prompt and a **Track B (Claude)** prompt with the exact JSON for that harness — use only the one for your tool. See the new format table in **Section 2.1**. The Curator (Section 6) is also now a **two-step** install — install the app, then a separate prompt connects its MCP *and* its usage skill, again split by track.
 >
 > **What changed in v3.0.** You no longer type terminal commands. You give your agent **prompts**, and the agent installs and configures everything for you. Both harnesses can do this: opencode (Track A), and **Claude Cowork** (Track B) — Cowork runs in a local environment with file and shell access, so it can install software, edit configuration files, and build the ledger connector just like opencode. Claude Code works for this too. **Plain Claude Chat cannot** run this setup — it is not an agent and has no file access. So on Track B, always work in Claude Cowork (or Claude Code), never in the normal chat window.
 
@@ -252,7 +254,7 @@ and explain each step in plain language as you go:
 5. Whenever you install or configure anything that future sessions will need
    to know about, append a short note to the relevant section of AGENTS.md so
    the next session is aware of it. Never write secrets (API keys, tokens,
-   tenant IDs, mail credentials) into AGENTS.md — those belong in environment
+   mail credentials) into AGENTS.md — those belong in environment
    variables or the tool's own credential store.
 
 6. Confirm what was installed and created, then run the Activation Status Check
@@ -769,10 +771,10 @@ Only a hash (fingerprint) of each event — never the raw content. No business d
 
 All communication with the ledger goes through a single function, send_agent_event(), in a single file the agent builds for you: ledger_connector.py. This is the only thing that ever changes when the backend changes — your agent never does. You build it with one prompt.
 
-| **YOU WILL NEED** | Your instructor gives you three values for the sandbox: a **base URL** (the ledger host), an **API key**, and a **tenant / participant ID**. Keep these handy. You give them to the agent when it asks, and the agent stores them as environment variables (`LEDGER_BASE_URL`, `LEDGER_API_KEY`, `LEDGER_TENANT_ID`) — never in any file in your project. |
+| **YOU WILL NEED** | Your instructor gives you **two values**: a **base URL** (the ledger host) and an **API key**. Keep these handy. You give them to the agent when it asks, and the agent stores them as environment variables (`LEDGER_BASE_URL`, `LEDGER_API_KEY`) — never in any file in your project. **There is no tenant / participant ID** — the server derives the tenant from your API key, so you never set or send one. |
 | --- | --- |
 
-| **NOTE — this is a real connectivity test** | Earlier versions of this lab ran on synthetic data only. You are now connecting to the **live Cotrugli DLT sandbox** and submitting real lifecycle events. The sandbox's sign-in is currently demo-friendly (relaxed auth), so this is perfect for a first connectivity test — but treat the tenant ID as a routing label, not a secret identity. Hardened per-student tokens come later, for the full CdayZ cohort. |
+| **NOTE — this is a real connectivity test** | Earlier versions of this lab ran on synthetic data only. You are now connecting to the **live Cotrugli DLT sandbox** and submitting real lifecycle events. Your API key is now **bound server-side to your own tenant** — every student's receipts land in their own drawer, and no two students' data ever mix. Because the tenant comes from the key, you send only your API key; do **not** send an `X-Tenant` header (if you do and it disagrees with the key, the server returns HTTP 403). |
 | --- | --- |
 
 **LEDGER CONNECTION — copy and paste this into your agent:**
@@ -789,11 +791,12 @@ in plain language as you go. I am not a developer — you do all the technical w
    wire format and hash the content. This separation is the whole point: when the
    backend changes later, only this file changes.
 
-2. Ask me for three values and store them as environment variables (NEVER write
+2. Ask me for two values and store them as environment variables (NEVER write
    them into ledger_connector.py, AGENTS.md, or any file in this project):
        LEDGER_BASE_URL    the sandbox host
        LEDGER_API_KEY     my API key
-       LEDGER_TENANT_ID   my tenant / participant ID
+   There is NO LEDGER_TENANT_ID — the server derives the tenant from the API key.
+   Never send an X-Tenant header in any request.
 
 3. The payload I pass you (keep this stable and simple) is:
        action_type    one of: COMMITMENT, FULFILLMENT, ACCEPTANCE, DISPUTE,
@@ -809,10 +812,14 @@ in plain language as you go. I am not a developer — you do all the technical w
 
 4. send_agent_event() POSTs to:
        POST  {LEDGER_BASE_URL}/integrations/agent/events
-   with headers (ALL THREE required):
+   with headers (BOTH required):
        X-API-Key:    (from LEDGER_API_KEY)
-       X-Tenant:     (from LEDGER_TENANT_ID)
        Content-Type: application/json     <- mandatory, or the server returns 422
+   (Authorization: Bearer <key> is also accepted in place of X-API-Key.)
+   Do NOT send an X-Tenant header — the server derives the tenant from the API key,
+   and a mismatched X-Tenant is rejected with HTTP 403.
+   Error codes to handle: 401 (missing/unknown key), 403 (you sent X-Tenant — omit
+   it), 422 (malformed payload or missing Content-Type), 429 (rate limit, if enabled).
    The body wraps the event in an "events" ARRAY (not a bare object):
        { "events": [ { ...AgentToolCallEvent... } ] }
    Build each AgentToolCallEvent from my simple payload:
@@ -846,23 +853,25 @@ in plain language as you go. I am not a developer — you do all the technical w
    c. Anchoring runs on a ~60-second timer (you need NO anchor key). After sending,
       wait up to 60 seconds, then verify inclusion by fetching the proof bundle:
           GET  {LEDGER_BASE_URL}/receipts/{URL-ENCODED receipt_id}/proof-bundle
-          Header:  X-Tenant: (the SAME value you used on the POST)   <- required here too
+          Header:  X-API-Key: (from LEDGER_API_KEY)   <- tenant derived from key
       URL-ENCODE the receipt_id in the path (it contains "sha256:" and the colon
       breaks the URL). Add a helper verify_receipt(receipt_id) that does this and
       returns the proof bundle (leaf_hash, inclusion_proof, signed checkpoint), or
       "not anchored yet" if the 60s timer hasn't passed. Do not block on it.
    THREE GOTCHAS (all real — confirmed in testing):
-      • X-Tenant must be IDENTICAL on the POST and the proof-bundle GET (else 404).
+      • Do NOT send X-Tenant on any request. The server derives the tenant from the
+        API key; a mismatched X-Tenant is rejected with 403. Authenticate with
+        X-API-Key on both the POST and the proof-bundle GET.
       • Content-Type: application/json is mandatory on the POST (else 422).
       • URL-encode the receipt_id in the proof-bundle path.
 
 6. Respect these three rules:
    a. The connector is the ONLY swap point. Keep it to this one file. The agent
       stays unaware of the backend and the wire schema.
-   b. Tenant is NOT identity. X-Tenant (LEDGER_TENANT_ID) is routing only and must
-      stay OUT of any hash. Semantic identity travels inside the hashed body via
-      agent_id. (If a future backend uses a principal_ref field, map agent_id ->
-      principal_ref here — one line, in this file only.)
+   b. Tenant is NOT identity. The tenant is derived server-side from the API key and
+      stays OUT of any hash. Do not send X-Tenant. Semantic identity travels inside
+      the hashed body via agent_id. (If a future backend uses a principal_ref field,
+      map agent_id -> principal_ref here — one line, in this file only.)
    c. The agent's mandate IS the governance mandate: forbidden actions and
       actions-requiring-approval map to the co-sign / approval level. Mark approval
       as human_approved only after I have confirmed.
@@ -877,15 +886,16 @@ in plain language as you go. I am not a developer — you do all the technical w
        approval.actor_ref (reviewer)     -> relations / co-signer
 
 8. Send ONE test event (event_type "COMMITMENT", with dummy input/output content)
-   to confirm the connection works end to end. Show me the receipt_id and status.
+   to confirm the connection works end to end. The test sends NO X-Tenant header —
+   the server derives the tenant from the key. Show me the receipt_id and status.
    Then wait ~60 seconds for the auto-anchor timer and call verify_receipt() — show
    me the proof bundle (leaf_hash, inclusion_proof, signed checkpoint). If the first
    try says "not anchored yet", wait the rest of the 60s and try once more.
 
 9. Record in AGENTS.md (Cotrugli Ledger section): the connector file path, the base
    URL/endpoint it targets, the verify endpoint, and the names of the environment
-   variables it reads, and set status to CONNECTED. Do NOT record the API key,
-   tenant ID, or base URL value itself. Add anything else a future session needs.
+   variables it reads, and set status to CONNECTED. Do NOT record the API key or
+   base URL value itself. Add anything else a future session needs.
 
 After you finish, summarise in 5 bullet points what you built and how a future
 session triggers a ledger submission and verifies anchoring.
@@ -1067,7 +1077,7 @@ COMMUNICATION LAYER (optional)
 [ ] Atomic Mail MCP — agent mailbox username:
 
 LEDGER CONNECTION (required)
-[ ] Connected to Cotrugli Ledger — API key + tenant ID from instructor
+[ ] Connected to Cotrugli Ledger — base URL + API key from instructor
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 ```
 
@@ -1111,7 +1121,7 @@ Tell your agent: "My original Commitment needs to change. The new target is [new
 
 ### **Do I have to connect to the Cotrugli Ledger?**
 
-Yes. The ledger connection is a required part of this lab — it is what makes your agent's project trail auditable and tamper-evident, on the live Cotrugli DLT sandbox. Your instructor gives you three values (base URL, API key, tenant ID), and the Ledger Connection prompt (Section 8) builds the connector for you.
+Yes. The ledger connection is a required part of this lab — it is what makes your agent's project trail auditable and tamper-evident, on the live Cotrugli DLT sandbox. Your instructor gives you **two values** (base URL + API key), and the Ledger Connection prompt (Section 8) builds the connector for you. There is no tenant ID — the server derives the tenant from your API key, so you never set or send one.
 
 ### **Can I add more MCPs after the course?**
 
@@ -1126,4 +1136,4 @@ The agent notes the failure clearly and continues with the tools it has. Your se
 Both opencode and Claude (via Cowork / Claude Code) can use the GitHub CLI (gh). If you need it, prompt your agent to check for the GitHub CLI and install/authenticate it (cli.github.com, free; "gh auth login"). The agent can then run read-only gh commands as defined in your mandate.
 
 *Vanguard Agent Lab | COTRUGLI Business School | Vanguard MBA | Chasing Jarvis — Module 5+*
-*Version 3.2 — Dr. Tali Rezun — July 2026 (per-harness MCP install prompts; two-step Curator install)*
+*Version 3.3 — Dr. Tali Rezun — July 2026 (two-parameter ledger connection: base URL + API key, tenant derived from key)*

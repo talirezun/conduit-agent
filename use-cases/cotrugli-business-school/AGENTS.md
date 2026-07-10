@@ -42,7 +42,7 @@ Agent name:       [AGENT_NAME]
 Owner:            [YOUR_FULL_NAME]
 Organisation:     [YOUR_ORGANISATION — leave blank for Personal config]
 Configuration:    [PERSONAL / COMPANY]
-Version:          1.1
+Version:          1.2
 ```
 
 ---
@@ -602,12 +602,12 @@ The Cotrugli Ledger records tamper-evident hashes of agent lifecycle events on t
 
 **The connector — one thin file.** All ledger communication goes through a single function, `send_agent_event()`, in a single file (`ledger_connector.py`), plus a helper `verify_receipt(receipt_id)`. The agent builds this file during setup using the Ledger Connection Prompt in the student guide. The agent never changes when the backend changes — only this one file does.
 
-**Credentials — three values, read from the environment (never written into this file):**
+**Credentials — two values, read from the environment (never written into this file):**
 ```
 LEDGER_BASE_URL     the sandbox host
 LEDGER_API_KEY      your API key
-LEDGER_TENANT_ID    your tenant / participant ID
 ```
+There is no tenant ID. The server derives the tenant from the API key, so the agent never sets or sends one.
 
 **What the agent passes to the connector (simple, stable — this never changes):**
 
@@ -633,10 +633,11 @@ send_agent_event({
 **What the connector sends on the wire (confirmed live schema — `AgentToolCallEvent`):**
 ```
 POST  {LEDGER_BASE_URL}/integrations/agent/events
-Headers (ALL THREE required):
-    X-API-Key:     (from LEDGER_API_KEY)
-    X-Tenant:      (from LEDGER_TENANT_ID)
+Headers (BOTH required):
+    X-API-Key:     (from LEDGER_API_KEY; Authorization: Bearer <key> is also accepted)
     Content-Type:  application/json        <- mandatory, or the server returns 422
+Do NOT send an X-Tenant header — the server derives the tenant from the API key,
+and a header that disagrees with the key is rejected with HTTP 403.
 Body — wrap the event in an "events" ARRAY (not a bare object):
     { "events": [ {
         "trace_id":         <stable id you generate per action_id>,
@@ -664,15 +665,21 @@ put the stage in tool_name (e.g. "vanguard:COMMITMENT").
 The POST returns a `receipt_id` (looks like `sha256:c4c0…`) and an `anchor_status`. The server auto-anchors on a scheduled ~60-second timer — no anchor key needed. After waiting ≤60s:
 ```
 GET  {LEDGER_BASE_URL}/receipts/{URL-ENCODED receipt_id}/proof-bundle
-Header:  X-Tenant: {LEDGER_TENANT_ID}    <- SAME value as the POST — required here too
+Header:  X-API-Key: {LEDGER_API_KEY}    <- tenant derived from key, same as the POST
 
 → leaf_hash, inclusion_proof (Merkle hops), signed checkpoint (Ed25519, tree_size), verification_keys
 ```
 
 **Three gotchas — get these right or the first run fails (all confirmed in testing):**
-1. `X-Tenant` identical on the POST and the proof-bundle GET — mismatch/omission → 404.
+1. **Do not send `X-Tenant`.** The server derives the tenant from the API key; a header that disagrees with the key → HTTP 403. Omit it entirely on both the POST and the GET.
 2. `Content-Type: application/json` mandatory on the POST — else 422.
 3. URL-encode the `receipt_id` in the proof-bundle path (it contains `sha256:`).
+
+**Error codes worth handling in the connector:**
+- `401` — API key is missing or unknown
+- `403` — an `X-Tenant` header was sent and contradicts the key binding (omit it)
+- `422` — malformed payload, or `Content-Type: application/json` missing
+- `429` — rate limit (only if quotas are enabled)
 
 **Duplicate detection:** this path returns **no** `was_duplicate` flag. Dedup is implicit — the `receipt_id` is deterministic, so re-sending the same event returns the same receipt. Do not promise a replay signal.
 
@@ -691,21 +698,21 @@ Header:  X-Tenant: {LEDGER_TENANT_ID}    <- SAME value as the POST — required 
 
 **Three rules the connector must respect:**
 1. **The connector is the only swap point** — one thin file. The agent never knows about the backend or the wire schema.
-2. **Tenant ≠ identity.** `X-Tenant` (`LEDGER_TENANT_ID`) is routing only and stays *out* of the hashed body. Semantic identity travels inside the hashed body via `agent_id`. (If a future backend uses a `principal_ref` field, map `agent_id → principal_ref` here — one line, in this file only. Confirm the final identity field with Dražen before the cohort-wide rollout.)
+2. **Tenant ≠ identity.** The tenant is derived server-side from the API key and stays *out* of the hashed body. Do not send an `X-Tenant` header. Semantic identity travels inside the hashed body via `agent_id`. (If a future backend uses a `principal_ref` field, map `agent_id → principal_ref` here — one line, in this file only.)
 3. **The agent config IS the mandate.** Forbidden actions + actions-requiring-approval + reviewer map to PAC-BCVC scope + HAI5 level + governance-kernel `REQUIRE_COSIGN`. When the agent attempts a forbidden or over-limit action, the governance rule fires and requires co-sign or escalates.
 
 **Important:** Never include raw business content in the event. Only hashes. The connector function handles this — do not construct the payload manually.
 
 <!-- AGENT: after building ledger_connector.py during setup, record here: the connector file
      path, the base URL/endpoint it targets, the verify endpoint, and how credentials are read
-     (env var names). Do NOT write the actual API key, tenant ID, or base URL value into this file. -->
+     (env var names). Do NOT write the actual API key or base URL value into this file. -->
 
 ```
 Connector file:   [AGENT_FILLS_THIS — e.g. ./ledger_connector.py]
 Base URL:         [AGENT_FILLS_THIS — e.g. read from env LEDGER_BASE_URL, do not print the value]
 Endpoint:         [AGENT_FILLS_THIS — e.g. POST {LEDGER_BASE_URL}/integrations/agent/events]
 Verify endpoint:  [AGENT_FILLS_THIS — e.g. GET /receipts/{URL-encoded receipt_id}/proof-bundle]
-Credentials read from env: [AGENT_FILLS_THIS — e.g. LEDGER_BASE_URL, LEDGER_API_KEY, LEDGER_TENANT_ID]
+Credentials read from env: [AGENT_FILLS_THIS — e.g. LEDGER_BASE_URL, LEDGER_API_KEY]
 Status:           [NOT YET CONNECTED → CONNECTED after first successful test event + verified proof-bundle]
 ```
 
@@ -782,10 +789,10 @@ The Setup Prompt creates this automatically. You do not need to make these folde
 9. Stay in role — you are a business execution agent, not a general assistant
 10. **MCP config goes to the right file for your harness:** `opencode.jsonc` for opencode, `claude_desktop_config.json` for Claude Desktop. Never edit the other harness's file.
 11. For Cotrugli Ledger events: always confirm with the owner before calling `send_agent_event()` — these create immutable records
-12. **Self-documenting:** whenever you install, configure, or connect something for future sessions, write what's needed back into this file (in the relevant layer or the Dependencies table). Never write secrets (API keys, tenant IDs, mail credentials) into this file — those live in environment variables or the MCP's own credential store.
+12. **Self-documenting:** whenever you install, configure, or connect something for future sessions, write what's needed back into this file (in the relevant layer or the Dependencies table). Never write secrets (API keys, mail credentials) into this file — those live in environment variables or the MCP's own credential store.
 
 ---
 
-*Vanguard Execution Agent v1.1 — COTRUGLI Business School · Vanguard MBA · Chasing Jarvis (live Cotrugli DLT connector)*
+*Vanguard Execution Agent v1.2 — COTRUGLI Business School · Vanguard MBA · Chasing Jarvis (live Cotrugli DLT connector — two-parameter connection: base URL + API key)*
 *opencode: place as AGENTS.md in project folder*
 *Claude Desktop: rename to CLAUDE.md, add as project knowledge; run setup with Claude Cowork or Claude Code*
