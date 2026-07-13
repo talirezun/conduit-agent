@@ -11,6 +11,7 @@ This is the heart of Conduit's promise: **one core, many uses.** A business scho
 | Use case | For | Highlights |
 |---|---|---|
 | 🎓 **[Cotrugli Business School](cotrugli-business-school/)** | COTRUGLI / Vanguard MBA students | 30-day execution lifecycle, reviewer flow, required Cotrugli Ledger connection |
+| 🧭 **[Atlas — Professional Assistant](atlas-professional-assistant/)** | Any working professional (CEO, founder, manager, consultant) | Agnostic execution assistant · meetings → action items, on-demand research, PDF reading, second brain · opencode-only, prompt-driven, privacy-first |
 
 *More coming — yours could be next.*
 
