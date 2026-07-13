@@ -7,3 +7,6 @@
 # Secrets — never commit these
 .env
 *.local
+
+# Transient Playwright MCP artifacts
+.playwright-mcp/

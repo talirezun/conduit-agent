@@ -35,7 +35,7 @@ After the course, the agent stays with you. It is a tool for your business — n
 | **Layer** | **Purpose** | **Status** |
 | --- | --- | --- |
 | **📋 Execution** | 30-day project tracking — commitments, fulfillments, evidence | Required |
-| **🧠 Memory** | Short-term: memory.md  │  Long-term: My Curator MCP (compounding second brain) | Required |
+| **🧠 Memory & Context** | Working memory: memory.md  │  Context layer: My Curator MCP (compounding second brain) | Required |
 | **📒 Ledger** | Cotrugli Ledger connector — tamper-evident lifecycle hashes | Required |
 | **📊 Data** | Excel workbooks for structured tracking and reporting | Recommended |
 | **📡 Intelligence** | Student-defined data sources, web monitoring, signals | Optional |
@@ -420,9 +420,9 @@ Steps:
 After setup, summarise what you did in 3 bullet points.
 ```
 
-## **My Curator MCP — Long-Term Memory (the agent's second brain)**
+## **My Curator MCP — the Context Layer (the agent's second brain)**
 
-The Curator is an open-source local knowledge system that gives your agent a **persistent, compounding second brain**. You ingest documents, notes, and research, and The Curator organises them into a **knowledge graph** the agent can query across sessions.
+The Curator is an open-source local knowledge system that gives your agent its **context layer** — a **persistent, compounding second brain**. You ingest documents, notes, and research, and The Curator organises them into a **knowledge graph** the agent can query across sessions. Building a second brain (or a shared brain for a cohort) is building the context your agent reasons with.
 
 Why this matters: instead of starting cold each time, your agent gains on-demand access to a growing neural network of your knowledge. The graph is split into **domains** — each domain can be **your own knowledge** or a **company brain** — and it **compounds over time**: the more you add, the more context your agent has. That context is exactly what makes the agent good at executing real tasks, because it can ground its work in what you (or your company) already know rather than guessing.
 
@@ -519,7 +519,7 @@ file. Explain each step in plain language.
    Then verify: call the my-curator "list_domains" tool and show me my domains.
    If it fails, check that the Curator app/server is running.
 
-5. Record in AGENTS.md (Memory / Long-Term Memory section): that the my-curator MCP
+5. Record in AGENTS.md (Memory / Context layer section): that the my-curator MCP
    is connected, the path curator-skill/my-curator.md for the skill, and that the
    Curator app must be running for the second brain to work.
 After setup, summarise what you did in 5 bullet points.
@@ -565,7 +565,7 @@ Explain each step in plain language.
 5. After I restart, verify: call the my-curator "list_domains" tool and show me my
    domains. If it fails, confirm the Curator app is running.
 
-6. Record in AGENTS.md (Memory / Long-Term Memory section): that the my-curator MCP
+6. Record in AGENTS.md (Memory / Context layer section): that the my-curator MCP
    is connected, where the skill files live, and that the Curator app must be running
    for the second brain to work.
 After setup, summarise what you did in 5 bullet points.

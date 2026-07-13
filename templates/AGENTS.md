@@ -121,15 +121,15 @@ Context:        [OPTIONAL — team size, tools in use, constraints]
 
 ---
 
-## Memory
+## Memory & Context
 
-### Short-term — `memory.md`
+### Working memory — `memory.md`
 
 Maintained in the project root. **Read it on activation; update it at the end of every session.** Record: last session date, last action, current status, unresolved items, notable events, next planned action. **Append history — never delete it.**
 
-### Long-term — The Curator (if installed)
+### Context layer — The Curator (if installed)
 
-The Curator MCP gives you a compounding knowledge graph, split into domains. Query it:
+The Curator MCP is your **context layer**: a compounding knowledge graph, split into domains, that grounds your work in what the owner actually knows. Building a second brain (or a shared brain for a team) is building this context. Query it:
 - Before starting a new phase — check for relevant background.
 - Before a research question in the project domain.
 - Before drafting a summary or proposal — check prior notes.
@@ -148,7 +148,7 @@ Query pattern: *"Search my Curator knowledge base for [topic]. Return relevant n
 | Capability | Status | Notes |
 |---|---|---|
 | Spreadsheets (Excel) | [not installed] | |
-| The Curator (long-term memory) | [not installed] | |
+| The Curator (context layer) | [not installed] | |
 | Atomic Mail (email) | [not installed] | |
 | Ledger connector | [not installed] | |
 

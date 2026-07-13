@@ -33,7 +33,7 @@ You can stop after Section 6 and have a genuinely useful assistant. The optional
 | Layer | What it does | Status |
 |---|---|---|
 | 🗂️ **Tasks** | Capture and follow up on your work (`tasks.md`) | Always on |
-| 🧠 **Memory** | `memory.md` (short-term) + My Curator (long-term second brain) | Always on |
+| 🧠 **Memory & Context** | `memory.md` (working memory) + My Curator (context layer / second brain) | Always on |
 | 📊 **Data** | Excel workbooks for logs and reports | Recommended |
 | 🔎 **Research** | No-auth web fetch + PDF reading | Recommended |
 | 🎙️ **Meetings** | Local, private transcription → minutes + action items | Optional |
@@ -167,9 +167,9 @@ Install what you want, in any order. Each is a copy-paste prompt; Atlas does the
 
 ---
 
-## 6.1 My Curator — Long-Term Memory (the second brain)
+## 6.1 My Curator — Your Context Layer (the second brain)
 
-The Curator gives Atlas a compounding knowledge graph it can query and grow across sessions. → [Why The Curator matters](../../docs/05-the-curator.md). Install is **two steps**.
+The Curator is Atlas's **context layer**: a compounding knowledge graph it can query and grow across sessions — a second brain (or, for a team, a shared brain) that grounds its work in what you actually know. → [Why The Curator matters](../../docs/05-the-curator.md). Install is **two steps**.
 
 ### Step 1 — install the app
 
@@ -235,7 +235,7 @@ Work only in the project-level opencode.jsonc in this folder (not the global
 4. Reload opencode / restart the session, then verify: call the my-curator
    "list_domains" tool and show me my domains. If it fails, check the Curator app
    is running.
-5. Record in AGENTS.md (Memory / long-term memory) that my-curator is connected,
+5. Record in AGENTS.md (Memory & Context / context layer) that my-curator is connected,
    the path curator-skill/my-curator.md, and that the Curator app must be running.
 After setup, summarise what you did in 5 bullets.
 ```

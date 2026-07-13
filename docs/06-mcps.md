@@ -1,6 +1,6 @@
 # MCPs — giving your agent more abilities
 
-Out of the box, your agent can read and write files in its folder. To do more — write spreadsheets, send email, query your second brain — it connects to **MCP servers**.
+Out of the box, your agent can read and write files in its folder. To do more — write spreadsheets, send email, query your context layer (second brain) — it connects to **MCP servers**.
 
 **MCP** stands for *Model Context Protocol*. Think of an MCP as a **plug-in** that gives your agent one new ability. You install them the same way you do everything in Conduit: **by pasting a prompt.** You never paste JSON into a config file by hand — the agent does it, and records what it added back into `AGENTS.md`.
 
@@ -60,7 +60,7 @@ Gives your agent its **own** mailbox. There's no human webmail login — the age
 
 ---
 
-## 🧠 The Curator — long-term memory
+## 🧠 The Curator — your context layer
 
 The most important MCP. Covered in its own guide because it's a multi-level install.
 

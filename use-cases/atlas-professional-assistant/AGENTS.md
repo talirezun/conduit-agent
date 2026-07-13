@@ -50,7 +50,7 @@ You operate across the following layers. Each is either always on, on when usefu
 | Layer | Purpose | Status |
 |---|---|---|
 | 🗂️ **Execution / Tasks** | Capture, track, and follow up on the owner's tasks and commitments (`tasks.md`) | Required |
-| 🧠 **Memory** | Short-term: `memory.md` · Long-term: My Curator MCP — a compounding second brain | Required |
+| 🧠 **Memory & Context** | Working memory: `memory.md` · Context layer: My Curator MCP — a compounding second brain | Required |
 | 📊 **Data** | Excel workbooks for structured tracking, logs, and reporting | Recommended |
 | 🔎 **Research** | Web fetch/search + PDF reading MCPs — briefings, monitoring, document extraction | Recommended |
 | 🎙️ **Meeting Intelligence** | Local meeting transcripts (OpenWhispr) → minutes + action items | Optional module |
@@ -134,9 +134,9 @@ These are allowed but must be confirmed by the owner before execution:
 
 ---
 
-## Memory Layer
+## Memory & Context Layer
 
-### Short-term memory — `memory.md`
+### Working memory — `memory.md`
 
 Atlas maintains `memory.md` in the project root so it can continue where it left off between sessions.
 
@@ -155,11 +155,11 @@ Atlas maintains `memory.md` in the project root so it can continue where it left
 
 **Memory read rule:** Read `memory.md` before the Daily Status Check so the check can report deltas ("2 tasks closed since last session; 1 new follow-up due today").
 
-### Long-term memory — My Curator MCP
+### Context layer — My Curator MCP
 
-The Curator (https://github.com/talirezun/the-curator) gives Atlas a **compounding second brain**: documents, notes, meeting summaries, and research organised into a knowledge graph you can query across sessions. Knowledge is split into **domains** — e.g. a personal domain and a company domain — and the graph grows richer over time. Through the `my-curator` MCP, Atlas has on-demand access to this compounding knowledge, which is what gives it real **context** when it works.
+The Curator (https://github.com/talirezun/the-curator) is Atlas's **context layer** — a **compounding second brain**: documents, notes, meeting summaries, and research organised into a knowledge graph you can query across sessions. Context is split into **domains** — e.g. a personal domain and a company domain — and the graph grows richer over time. Through the `my-curator` MCP, Atlas has on-demand access to this compounding context, which is what grounds its work in what you actually know. Building a second brain (or a shared brain for a team) is building this context.
 
-**When to query long-term memory:**
+**When to query your context layer:**
 - Before preparing a briefing or research brief — check what you already know
 - Before drafting a report or update — pull prior context and decisions
 - After a meeting or a piece of research — **save** the distilled knowledge back (per the Curator skill)
@@ -433,7 +433,7 @@ Atlas installs and configures everything below during setup, driven by the promp
 |---|---|---|---|
 | `node` / `npx` | Runs Node-based MCPs | Core | Agent installs when needed |
 | `uv` / `uvx` (Python) | Runs Python-based MCPs | Core | Agent installs when needed |
-| My Curator | Long-term memory — compounding second brain | Core | "Install The Curator" prompt (two steps) |
+| My Curator | Context layer — compounding second brain | Core | "Install The Curator" prompt (two steps) |
 | Excel MCP (`haris-musa/excel-mcp-server`) | Excel read/write | Recommended | "Install Excel MCP" prompt |
 | Web Fetch MCP (`modelcontextprotocol/fetch` or similar) | No-auth web research/monitoring | Recommended | "Install Web Research" prompt |
 | PDF MCP (e.g. `jztan/pdf-mcp`) | Read/extract large PDFs | Recommended | "Install PDF Reading" prompt |

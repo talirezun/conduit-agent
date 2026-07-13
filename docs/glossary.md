@@ -14,13 +14,19 @@ Plain-language definitions. You don't need to memorize any of this — paste the
 
 **Mandate** — The rules in `AGENTS.md` that define what the agent may do, must never do, and may do only with your approval. The agent enforces these every session.
 
-**memory.md** — A small file holding short-term memory: where the agent left off last session. Created and updated automatically. → [Memory](04-memory.md)
+**memory.md** — A small file holding the agent's working memory: where it left off last session. Created and updated automatically. → [Memory & context](04-memory.md)
 
-**The Curator** — A local app that gives your agent long-term memory: a knowledge graph of your documents and notes, queryable across sessions. → [The Curator](05-the-curator.md)
+**Working memory** — The short-term half of the Memory & Context layer: `memory.md`, session-to-session continuity for one agent/project. → [Memory & context](04-memory.md)
+
+**Context layer** — The compounding, long-term half of the Memory & Context layer, provided by The Curator: the context your agent reasons with, built from everything you know. Building a second brain (or a shared brain) is building this context. → [The Curator](05-the-curator.md)
+
+**The Curator** — A local app that gives your agent its context layer: a knowledge graph of your documents and notes, queryable across sessions, that compounds as you add to it. → [The Curator](05-the-curator.md)
 
 **Knowledge graph** — A web of connected ideas (rather than a flat pile of files). The Curator builds one from what you feed it, so the agent can find related knowledge, not just keyword matches.
 
-**Domain** — A separate "brain" inside The Curator. You might keep one domain for personal knowledge and another for your company.
+**Domain** — A separate "brain" (context store) inside The Curator. You might keep one domain for personal knowledge and another for your company.
+
+**Shared brain** — A collective context layer a team builds together in The Curator: everyone's agents can read it, and each member contributes to it. Shared context, compounding across a group. → [The Curator](05-the-curator.md)
 
 **MCP (Model Context Protocol)** — A standard way to plug new abilities into your agent. An MCP **server** is one such plug-in (Excel, email, The Curator…). Installed by prompt. → [MCPs](06-mcps.md)
 

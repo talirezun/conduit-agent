@@ -1,8 +1,10 @@
-# The Curator — your agent's second brain
+# The Curator — your agent's context layer
 
-> **In one line:** The Curator is the difference between an agent that starts *cold* every session and one that *remembers everything you've taught it.*
+> **In one line:** The Curator is the difference between an agent that starts *cold* every session and one that works with the full **context** of everything you've taught it.
 
-The Curator is an open-source app that runs on **your computer**. You feed it documents, notes, and research; it organizes them into a **knowledge graph** — a connected web of ideas — that your agent can query any time. This is your agent's **long-term, compounding memory.**
+The Curator is an open-source app that runs on **your computer**. You feed it documents, notes, and research; it organizes them into a **knowledge graph** — a connected web of ideas — that your agent can query any time. This is your agent's **context layer: compounding context** it draws on to ground its work in what you actually know.
+
+> **The idea in a sentence.** A large language model has reasoning but no context about *you*. Building a **second brain** — or a **shared brain** for a team — is how you build that context. You're not just storing notes; you're assembling the context your agents (and you) reason with, and it **compounds** with every source you add.
 
 - **Repository:** https://github.com/talirezun/the-curator
 - **User guide:** https://github.com/talirezun/the-curator/blob/main/docs/user-guide.md
@@ -11,16 +13,16 @@ The Curator is an open-source app that runs on **your computer**. You feed it do
 
 ## Why it matters
 
-A language model is brilliant but forgetful. Without long-term memory, your agent begins every session knowing nothing about you, your company, or your past work — so it guesses, and you re-explain.
+A language model is brilliant but has no context of its own. Without a context layer, your agent begins every session knowing nothing about you, your company, or your past work — so it guesses, and you re-explain.
 
 The Curator fixes this:
 
-- **It compounds.** Every document and note you add makes the agent more capable next time. Knowledge accumulates instead of evaporating.
-- **It grounds the agent in *your* reality.** When the agent does a task, it can pull from what you actually know — your playbooks, your research, your decisions — instead of generic guesses.
-- **It's organized, not a dump.** Knowledge becomes a graph of connected ideas split into **domains**. You might keep one domain for your personal knowledge and another as a "company brain." The agent queries the right domain for the task.
-- **It stays private.** The Curator runs locally. Your knowledge lives on your machine.
+- **It compounds.** Every document and note you add makes the agent more capable next time. Context accumulates instead of evaporating — a shift from a file cabinet to a neural network.
+- **It grounds the agent in *your* reality.** When the agent does a task, it can pull the context you actually have — your playbooks, your research, your decisions — instead of generic guesses. It isn't retrieval-on-every-query (RAG); the knowledge is compiled once into a graph and kept current.
+- **It's organized, not a dump.** Context becomes a graph of connected ideas split into **domains**. You might keep one domain for your personal knowledge and another as a "company brain." The agent queries the right domain for the task.
+- **It stays private.** The Curator runs locally. Your context lives on your machine.
 
-> Think of `memory.md` as the agent's short-term memory of *this project*, and The Curator as its long-term memory of *everything you know*. → [Memory](04-memory.md)
+> Think of `memory.md` as the agent's **working memory** of *this project*, and The Curator as its **context layer** — the compounding context of *everything you know*. → [Memory & context](04-memory.md)
 
 ---
 
@@ -32,7 +34,7 @@ Once connected, your agent can, mid-task:
 
 > *Search my Curator knowledge base for [topic]. Return the relevant notes, summaries, or context.*
 
-…and weave the results into whatever it's doing. The knowledge graph is queried *on demand*, across sessions — so the agent always has access to the full, growing brain, not just this conversation.
+…and weave the results into whatever it's doing. The graph is queried *on demand*, across sessions — so the agent always has the full, growing context, not just this conversation. This is graph-native access to your own intellectual history, not a model pretending to have read your files.
 
 ---
 
@@ -54,7 +56,7 @@ The agent checks for Node.js (installs it if missing), downloads The Curator, bu
 
 When The Curator opens for the first time, an **onboarding wizard** runs *in the app*. It asks you for an API key (for the model that organizes your knowledge) and helps you create your **first domain**. This is a one-time, in-app step — the agent does not need your key.
 
-> 💡 Make one domain for your **personal** knowledge, and (if relevant) a separate one for your **company**. Keeping them separate keeps the graph clean.
+> 💡 Make one domain for your **personal** context, and (if relevant) a separate one for your **company**. Keeping them separate keeps the graph clean.
 
 ### Level 3 — Connect the MCP + usage skill so your agent can use it well
 
@@ -65,7 +67,7 @@ Now you connect The Curator to your *agent*. This is **Step 2** of the [Install 
    - **Claude Cowork / Code** → `claude_desktop_config.json` (Claude's `mcpServers` format), then **restart Claude Desktop**
 2. **Installs the Curator usage skill** — a playbook that teaches the agent how to read, write, and maintain the wiki without broken links or duplicates. The MCP gives the agent the *tools*; the skill gives it the *rules*. (opencode loads it via an `instructions` entry; Claude Code puts it in `~/.claude/skills/`.)
 
-It then records in `AGENTS.md` that long-term memory is now available. **The Curator app must be running** for the MCP to work.
+It then records in `AGENTS.md` that the context layer is now available. **The Curator app must be running** for the MCP to work.
 
 ```
   Level 1            Level 2                  Level 3
@@ -81,19 +83,19 @@ It then records in `AGENTS.md` that long-term memory is now available. **The Cur
 
 ## Level 4 (ongoing) — Feed it and query it
 
-The Curator is only as useful as what's in it. Ingest a few real documents early — notes, reports, research, playbooks — and keep adding over time. The [user guide](https://github.com/talirezun/the-curator/blob/main/docs/user-guide.md) walks through ingesting sources and querying domains.
+The Curator is only as useful as the context in it. Ingest a few real documents early — notes, reports, research, playbooks — and keep adding over time. The [user guide](https://github.com/talirezun/the-curator/blob/main/docs/user-guide.md) walks through ingesting sources and querying domains.
 
 Then your agent can use it. For example:
 
 > *Before you draft the proposal, search my Curator company domain for our past pricing decisions and positioning notes, and use them.*
 
-The more you add, the smarter your agent gets. That's the compounding second brain.
+The more you add, the more context your agent has to reason with. That's the compounding context layer.
 
 ---
 
-## Optional — GitHub sync
+## Optional — GitHub sync and shared brains
 
-The Curator can sync to GitHub so your knowledge graph is backed up and shareable. See `docs/sync.md` in the [Curator repository](https://github.com/talirezun/the-curator).
+The Curator can sync to GitHub so your knowledge graph is backed up and shareable. This is also how a team builds a **shared brain**: a collective context layer that everyone's agents can read, and that each member contributes to. See `docs/sync.md` in the [Curator repository](https://github.com/talirezun/the-curator).
 
 ---
 

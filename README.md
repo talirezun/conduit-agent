@@ -10,10 +10,10 @@ Conduit is an open framework for setting up a personal **execution agent**: an A
 
 ## Why Conduit
 
-- **🔒 Private by default.** The agent runs on *your* computer. Your files stay with you. Short-term memory is a local file; long-term memory is a local app. Nothing is sent to a server unless you choose a tool that does so.
+- **🔒 Private by default.** The agent runs on *your* computer. Your files stay with you. Working memory is a local file; your context layer is a local app. Nothing is sent to a server unless you choose a tool that does so.
 - **💸 Free to run.** Start with zero cost and zero accounts. Conduit works with free models, your own API key, *or* models running fully offline on your machine. (See the [Free Ladder](docs/02-choose-your-runtime.md).)
 - **⌨️ No code, no terminal.** You describe what you want in plain language and paste setup prompts. The agent installs its own tools, writes its own config, and explains each step.
-- **🧠 It gets smarter over time.** Through [The Curator](docs/05-the-curator.md), your agent builds a compounding "second brain" — a knowledge graph it can query across sessions.
+- **🧠 It gets smarter over time.** Through [The Curator](docs/05-the-curator.md), your agent builds a **context layer** — a compounding "second brain" (or shared brain) it can query across sessions. Building a second brain is building context, for you and your agents.
 - **🧾 Accountable.** Every agent is governed by a single config file (its *mandate*) and can keep a tamper-evident record of what it did. Good for trust, good for compliance.
 - **🌍 Universal.** One core framework, many [use cases](use-cases/). The first is a business school lab; the next could be yours.
 
@@ -43,7 +43,7 @@ You only ever need **one tool** to begin: an *agent harness* that can read files
 - **[opencode](https://opencode.ai)** — open-source, free, runs free or local models. *Recommended starting point.*
 - **Claude Cowork / Claude Code** — best quality, requires a Claude subscription.
 
-Everything else — long-term memory, spreadsheets, email, an audit ledger — is **optional** and installed later, by prompt, only if you want it.
+Everything else — the context layer, spreadsheets, email, an audit ledger — is **optional** and installed later, by prompt, only if you want it.
 
 → See [Choose your runtime — the Free Ladder](docs/02-choose-your-runtime.md).
 
@@ -81,7 +81,7 @@ conduit-agent/
 
 ## Related projects
 
-- **[The Curator](https://github.com/talirezun/the-curator)** — the open-source local "second brain" that gives Conduit agents long-term memory. ([Why it matters](docs/05-the-curator.md).)
+- **[The Curator](https://github.com/talirezun/the-curator)** — the open-source local "second brain" that gives Conduit agents their context layer: compounding context across sessions. ([Why it matters](docs/05-the-curator.md).)
 - **[opencode](https://opencode.ai)** — the free, open-source agent harness Conduit recommends.
 
 ---

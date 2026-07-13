@@ -14,7 +14,7 @@ You have a ready-made template: **[templates/AGENTS.md](../templates/AGENTS.md)*
 | **Role & layers** | Which [layers](01-concepts.md) are active |
 | **Goal** | The one thing this agent is for, with a measurable target |
 | **Mandate** | Allowed / forbidden / needs-approval actions |
-| **Memory** | How it uses `memory.md` and The Curator |
+| **Memory & context** | How it uses `memory.md` (working memory) and The Curator (context layer) |
 | **Capabilities** | Which MCPs are installed (the agent fills this in as it installs them) |
 | **Communication rules** | How it should behave — always confirm before sending email, never commit to git unasked, etc. |
 

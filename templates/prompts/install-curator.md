@@ -1,6 +1,6 @@
 # Install The Curator prompt
 
-Gives your agent long-term memory — a compounding second brain. → [Why The Curator matters](../../docs/05-the-curator.md)
+Gives your agent a **context layer** — a compounding second brain (compounding context across sessions). → [Why The Curator matters](../../docs/05-the-curator.md)
 
 The Curator install is **two steps**, and only Step 2 differs by harness:
 
@@ -80,7 +80,7 @@ Work only in the project-level opencode.jsonc in this folder (not the global
 4. Reload opencode / restart the session, then verify: call the my-curator
    "list_domains" tool and show me my domains. If it fails, check the Curator app
    is running.
-5. Record in AGENTS.md (Memory / long-term memory) that my-curator is connected, the
+5. Record in AGENTS.md (Memory & Context / context layer) that my-curator is connected, the
    path curator-skill/my-curator.md, and that the Curator app must be running.
 After setup, summarise what you did in 5 bullet points.
 ```
@@ -117,7 +117,7 @@ Work only in claude_desktop_config.json (system location) — never touch openco
 4. Remind me to fully quit and restart Claude Desktop so the MCP loads.
 5. After I restart, verify: call the my-curator "list_domains" tool and show me my
    domains. If it fails, confirm the Curator app is running.
-6. Record in AGENTS.md (Memory / long-term memory) that my-curator is connected,
+6. Record in AGENTS.md (Memory & Context / context layer) that my-curator is connected,
    where the skill files live, and that the Curator app must be running.
 After setup, summarise what you did in 5 bullet points.
 ```

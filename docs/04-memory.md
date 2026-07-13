@@ -1,18 +1,21 @@
-# Memory
+# Memory & context
 
-A Conduit agent has two kinds of memory, and they do different jobs. Together they're the difference between an assistant that forgets everything between chats and one that *compounds* — getting more useful the longer you work with it.
+A Conduit agent works with two things, and they do different jobs. Together they're the difference between an assistant that forgets everything between chats and one that *compounds* — getting more useful the longer you work with it.
 
-| | Short-term | Long-term |
+| | Working memory | Context layer |
 |---|---|---|
 | **What** | `memory.md` — one small file | [The Curator](05-the-curator.md) — a local knowledge app |
 | **Scope** | This one agent / project | Everything you've ever added, across projects |
-| **Holds** | "Where did we leave off?" | Documents, notes, research, a knowledge graph |
+| **Holds** | "Where did we leave off?" | Documents, notes, research — a knowledge graph |
+| **Role** | Short-term continuity | Compounding context the agent reasons with |
 | **Updated** | Automatically, every session | When you ingest sources |
 | **Required?** | Yes (created automatically) | Recommended |
 
+Both sit inside the agent's **Memory** layer: working memory is the short-term half, the context layer is the compounding, long-term half.
+
 ---
 
-## Short-term memory — `memory.md`
+## Working memory — `memory.md`
 
 This is a small file in your agent's folder. The agent **reads it at the start of every session** and **updates it at the end**. It's how the agent remembers what happened last time.
 
@@ -33,13 +36,13 @@ You never write this by hand. The [Setup prompt](../templates/prompts/setup.md) 
 
 ---
 
-## Long-term memory — The Curator
+## Context layer — The Curator
 
-Short-term memory remembers *this project*. Long-term memory remembers *everything you know*.
+Working memory remembers *this project*. The context layer holds *everything you know* — the compounding context your agent grounds its work in.
 
-[The Curator](https://github.com/talirezun/the-curator) is an open-source app that runs on your computer. You feed it documents, notes, and research; it organizes them into a **knowledge graph** — a web of connected ideas — that your agent can query at any time. Knowledge is split into **domains** (e.g. one for your personal knowledge, one for your company), and it **compounds**: the more you add, the more context your agent has to ground its work in *what you actually know*, instead of guessing.
+[The Curator](https://github.com/talirezun/the-curator) is an open-source app that runs on your computer. You feed it documents, notes, and research; it organizes them into a **knowledge graph** — a web of connected ideas — that your agent can query at any time. Context is split into **domains** (e.g. one for your personal knowledge, one for your company), and it **compounds**: the more you add, the more context your agent has to ground its work in *what you actually know*, instead of guessing.
 
-This is what turns a generic assistant into *your* agent.
+Building a **second brain** — or a **shared brain** for a team — is exactly this: you're building context, for yourself and for your agents. That's what turns a generic assistant into *your* agent.
 
 → Full guide, including the prompt-based install: **[The Curator →](05-the-curator.md)**
 
@@ -48,10 +51,10 @@ This is what turns a generic assistant into *your* agent.
 ## When the agent uses each
 
 - **Start of session:** read `memory.md` → "here's where we are."
-- **Before a new phase or a research question:** query The Curator → "here's what we already know about this."
+- **Before a new phase or a research question:** query The Curator → "here's the context we already have on this."
 - **End of session:** update `memory.md` → "here's where we're leaving off."
 
-You don't manage any of this. You just work, and the agent keeps both memories current.
+You don't manage any of this. You just work, and the agent keeps both current.
 
 ---
 

@@ -8,7 +8,7 @@ You don't need to read this to use Conduit — but it helps to understand *what*
 
 1. **A job description** — who it is and what it's for.
 2. **A mandate** — what it may do, what it must never do, and what needs your approval.
-3. **Memory** — what it knows now, and what it has learned over time.
+3. **Memory & context** — where it left off now (working memory), and the compounding context it reasons with (the context layer).
 4. **A record** — an honest trail of what it actually did.
 
 All four live in plain files in a folder on your computer. The most important file is **`AGENTS.md`** (or `CLAUDE.md`) — it holds the job description and the mandate. Everything else hangs off it.
@@ -22,7 +22,7 @@ A Conduit agent is organized into layers. Not all are required — you turn on w
 | Layer | What it does | Status |
 |---|---|---|
 | 🎯 **Execution** | The actual work — your project, tasks, deliverables, evidence | Required |
-| 🧠 **Memory** | Short-term (`memory.md`) + long-term ([The Curator](05-the-curator.md)) | Required |
+| 🧠 **Memory & Context** | Working memory (`memory.md`) + context layer ([The Curator](05-the-curator.md)) | Required |
 | 📊 **Data** | Structured tracking — spreadsheets, logs | Recommended |
 | 📡 **Intelligence** | Outside data the agent watches — web sources, signals | Optional |
 | 📧 **Communication** | An agent-owned mailbox for sending/receiving email | Optional |
@@ -30,7 +30,7 @@ A Conduit agent is organized into layers. Not all are required — you turn on w
 
 \* *Optional in the universal framework. The Cotrugli use case makes the ledger **required** — that's a choice a use case can make.*
 
-> The six-layer architecture comes from Conduit's first use case. Your use case can use as few as two layers (Execution + Memory) or all of them.
+> The six-layer architecture comes from Conduit's first use case. Your use case can use as few as two layers (Execution + Memory & Context) or all of them.
 
 ---
 
@@ -48,12 +48,12 @@ The agent reads these every session and stays inside them. If you ask it to do s
 
 ---
 
-## Memory: short-term and long-term
+## Memory and context: two halves
 
-- **Short-term — `memory.md`.** A small file the agent reads at the start of every session and updates at the end. It's how the agent "remembers where it left off" between conversations.
-- **Long-term — The Curator.** A local app that turns your documents and notes into a *knowledge graph* the agent can query. This is the agent's compounding second brain: the more you add, the more context it has.
+- **Working memory — `memory.md`.** A small file the agent reads at the start of every session and updates at the end. It's how the agent "remembers where it left off" between conversations.
+- **Context layer — The Curator.** A local app that turns your documents and notes into a *knowledge graph* the agent can query. This is the agent's **compounding context** — a second brain (or a shared brain for a team): the more you add, the more context it reasons with. Building a second brain *is* building context, for you and your agents.
 
-→ Deep dive: [Memory](04-memory.md) · [The Curator](05-the-curator.md)
+→ Deep dive: [Memory & context](04-memory.md) · [The Curator](05-the-curator.md)
 
 ---
 

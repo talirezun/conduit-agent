@@ -1,6 +1,6 @@
 # Research
 
-A home for articles and research on the ideas behind Conduit: prompt-driven agents, agent governance and accountability, short- and long-term memory, local-first privacy, and the practice of building assistant agents that run on your own computer.
+A home for articles and research on the ideas behind Conduit: prompt-driven agents, agent governance and accountability, working memory and the compounding context layer, local-first privacy, and the practice of building assistant agents that run on your own computer.
 
 This section is open to contributions — from the maintainers, from students, and from the wider community.
 
@@ -62,5 +62,5 @@ When referencing an article from this collection, please use a format like:
 
 ## Related reading
 
-- **[The Curator research collection](https://github.com/talirezun/the-curator/tree/main/research)** — articles on the second-brain architecture that powers Conduit's long-term memory.
+- **[The Curator research collection](https://github.com/talirezun/the-curator/tree/main/research)** — articles on the second-brain architecture that powers Conduit's context layer.
 - **[Conduit docs](../docs/)** — the framework itself, explained.

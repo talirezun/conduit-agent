@@ -14,7 +14,7 @@ Yes, to start. opencode is free and ships with free models. You can also use fre
 
 ### Is my data private?
 
-Yes. The agent runs on your computer; your files stay there. Short-term memory is a local file, long-term memory ([The Curator](05-the-curator.md)) is a local app, and a ledger only ever receives **hashes**, never content. With a local model (Rung 2), nothing leaves your machine at all.
+Yes. The agent runs on your computer; your files stay there. Working memory is a local file, your context layer ([The Curator](05-the-curator.md)) is a local app, and a ledger only ever receives **hashes**, never content. With a local model (Rung 2), nothing leaves your machine at all.
 
 ### What's the difference between Claude Cowork and plain Claude Chat?
 
@@ -26,7 +26,7 @@ Start with **opencode** if you want free and private, or if you don't have a Cla
 
 ### What does The Curator actually give my agent?
 
-A compounding second brain. Your documents and notes become a knowledge graph the agent queries across sessions, organized into domains. The more you add, the more context it has — which makes it far better at real tasks. → [The Curator](05-the-curator.md)
+A context layer — a compounding second brain. Your documents and notes become a knowledge graph the agent queries across sessions, organized into domains. The more you add, the more context it has — which makes it far better at real tasks. → [The Curator](05-the-curator.md)
 
 ### Does `memory.md` get created manually?
 

@@ -25,7 +25,7 @@ Where [Use Case #1 (Cotrugli Business School)](../cotrugli-business-school/) is 
 
 - **No lifecycle, no ledger, no reviewer.** Atlas isn't running a graded project — it's helping you get through your week.
 - **opencode-only, prompt-driven.** Everything installs by prompt; the agent builds itself. Free and open-source, with local-model (Ollama) support for maximum privacy.
-- **A modular tool stack** you turn on as needed: a second brain (Curator), spreadsheets (Excel), web research, PDF reading, local meeting transcription, and email.
+- **A modular tool stack** you turn on as needed: a context layer / second brain (Curator), spreadsheets (Excel), web research, PDF reading, local meeting transcription, and email.
 - **Privacy-first by construction.** Files stay local; web/PDF tools are no-auth; meeting transcription is 100 % on-device; anything that leaves your machine is opt-in and confirmed.
 
 ---
@@ -35,7 +35,7 @@ Where [Use Case #1 (Cotrugli Business School)](../cotrugli-business-school/) is 
 | Layer | Tool | Status |
 |---|---|---|
 | 🗂️ Tasks | `tasks.md` in your folder | Always on |
-| 🧠 Memory | `memory.md` + [My Curator](https://github.com/talirezun/the-curator) MCP | Always on |
+| 🧠 Memory & Context | `memory.md` (working memory) + [My Curator](https://github.com/talirezun/the-curator) MCP (context layer) | Always on |
 | 📊 Data | Excel MCP (`haris-musa/excel-mcp-server`) | Recommended |
 | 🔎 Research | Web Fetch MCP + PDF MCP (both no-auth) | Recommended |
 | 🎙️ Meetings | [OpenWhispr](https://github.com/OpenWhispr/openwhispr) (local transcription) | Optional |

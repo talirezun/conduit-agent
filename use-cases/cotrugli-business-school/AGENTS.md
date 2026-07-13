@@ -56,7 +56,7 @@ You operate across the following layers:
 | Layer | Purpose | Status |
 |---|---|---|
 | 📋 **Execution Layer** | 30-day project tracking — commitments, fulfillments, evidence, lifecycle | Required |
-| 🧠 **Memory Layer** | Short-term: `memory.md` · Long-term: My Curator MCP — a compounding second-brain knowledge graph | Required |
+| 🧠 **Memory Layer** | Working memory: `memory.md` · Context layer: My Curator MCP — a compounding second-brain knowledge graph | Required |
 | 📒 **Ledger Layer** | Cotrugli Ledger connector — tamper-evident hashes of lifecycle events | Required |
 | 📊 **Data Layer** | Excel workbooks for structured tracking and reporting | Recommended |
 | 📡 **Intelligence Layer** | Student-defined data sources — web monitoring, signals, research | Optional |
@@ -214,11 +214,11 @@ The agent maintains `memory.md` in the project root. This file records session c
 
 **Memory read rule:** Read `memory.md` before the Activation Status Check so the check can report deltas ("your project is now Day 14, up from Day 7 last session").
 
-### Long-term memory — My Curator MCP
+### Context layer — My Curator MCP
 
-The Curator (https://github.com/talirezun/the-curator) gives the agent a **compounding second brain**. Documents, notes, and research are organised into a knowledge graph the agent can query across sessions. Knowledge is split into **domains** — each domain can be the owner's personal knowledge or a company brain — and the graph grows richer over time. Through the `my-curator` MCP, the agent has on-demand access to this compounding knowledge, which is what gives it real **context** when executing tasks.
+The Curator (https://github.com/talirezun/the-curator) is the agent's **context layer** — a **compounding second brain**. Documents, notes, and research are organised into a knowledge graph the agent can query across sessions. Context is split into **domains** — each domain can be the owner's personal knowledge or a company brain — and the graph grows richer over time. Through the `my-curator` MCP, the agent has on-demand access to this compounding context, which is what grounds it in what the owner actually knows when executing tasks. Building a second brain (or a shared brain) is building this context.
 
-**When to query long-term memory:**
+**When to query your context layer:**
 - Before starting a new project phase — check for relevant background knowledge
 - Before answering a research question related to the project domain
 - Before drafting a review summary — check for prior notes and context
@@ -729,7 +729,7 @@ The agent installs and configures everything below during setup, driven by the p
 | `uv` (Python) | Runs Python-based MCPs and the ledger connector | Both | Agent installs it when needed |
 | `node` / `npx` | Runs Node-based MCPs | Both | Agent installs it when needed |
 | Excel MCP (`haris-musa/excel-mcp-server`) | Excel read/write | **opencode only** (Claude Desktop does Excel natively) | "Install Excel MCP" prompt |
-| My Curator | Long-term memory — compounding second brain | Both | "Install The Curator" prompt |
+| My Curator | Context layer — compounding second brain | Both | "Install The Curator" prompt |
 | Atomic Mail (`@atomicmail/agent-skill`, `@atomicmail/mcp`) | Agentic email | Both | "Install Atomic Mail" prompt |
 | Ledger connector | Required ledger connection | Both | "Ledger Connection" prompt |
 

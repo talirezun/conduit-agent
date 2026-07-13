@@ -64,7 +64,7 @@ Add these only if you want them, each by pasting one prompt:
 
 | Capability | What it adds | Guide |
 |---|---|---|
-| 🧠 **The Curator** | Long-term memory — a compounding second brain | [docs/05](05-the-curator.md) |
+| 🧠 **The Curator** | The context layer — a compounding second brain | [docs/05](05-the-curator.md) |
 | 📊 **Spreadsheets** | Read/write Excel (opencode only; Claude does it natively) | [docs/06](06-mcps.md) |
 | 📧 **Email** | An agent-owned mailbox | [docs/06](06-mcps.md) |
 | 🧾 **Audit ledger** | A tamper-evident record of what the agent did | [docs/07](07-governance-ledger.md) |
