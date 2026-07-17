@@ -25,6 +25,7 @@ Conduit is an open framework for setting up a personal **execution agent**: an A
 |---|---|
 | 🎓 A **COTRUGLI / Vanguard MBA student** | [use-cases/cotrugli-business-school](use-cases/cotrugli-business-school/) |
 | 💼 A **working professional** who wants an assistant that gets things done | [use-cases/atlas-professional-assistant](use-cases/atlas-professional-assistant/) |
+| 🏟️ A **team competing in the NEO-Arena** | [use-cases/neo-arena-team-agent](use-cases/neo-arena-team-agent/) |
 | 🧭 **New** and want to understand the idea first | [docs/01-concepts.md](docs/01-concepts.md) |
 | 🚀 Ready to **build your own agent** now | [docs/00-start-here.md](docs/00-start-here.md) |
 | 🛠️ A **practitioner** adapting Conduit to a workflow | [use-cases/README.md](use-cases/README.md) (build your own use case) |
