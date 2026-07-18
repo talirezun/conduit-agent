@@ -10,7 +10,7 @@ This is **Use Case #3** for the [Conduit framework](../../README.md): the config
 
 ## The one rule
 
-An agent can do everything in the Arena **except commit its team to a decision.** A binding decision — placing an order — requires an **Ed25519 signature from the team's CEO key**, which the Arena server verifies and refuses anything else (`REFUSED_BAD_CEO_SIGNATURE`). The agent's job stops at *"prepared and waiting"*; a human — or, in agent-only mode, a separate CEO process holding the key — signs. **The agent never holds the CEO private key.** The whole use case is built around this.
+An agent can do everything in the Arena **except commit its team to a decision.** A binding order requires an **Ed25519 signature from the team's CEO key** over the consolidation, which the Arena server verifies and refuses anything else (`REFUSED_NO_CEO_DECISION` / `REFUSED_BAD_CEO_SIGNATURE`). The agent's job stops at *"prepared and waiting"*; in the pilot a **human** signs in their team console (only in dry-run/sim mode does a separate signer hold a key). The agent detects the resulting `CEO_DECISION` event and uses its hash to order. **The agent never holds the CEO private key.** The whole use case is built around this.
 
 ---
 

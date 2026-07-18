@@ -21,9 +21,10 @@ Then show me the four books from books.md.
 ### B2 — Scan the market
 *Needs: the Arena client; sharper with Curator.*
 ```
-Scan the market: read state, open RFQs, current listings, and the leaderboard. Give me a
-short list of the best opportunities for my team. For any counterparty involved, check my
-Curator second brain for their record — if we have nothing on them, say so, don't guess.
+Scan the market: read state, open RFQs, current listings, and the journal-computed standings
+(and /score). Give me a short list of the best opportunities for my team. For any counterparty
+involved, check my Curator second brain for their record — if we have nothing on them, say so,
+don't guess.
 ```
 
 ### B3 — Send an offer against an RFQ
@@ -39,16 +40,17 @@ If the Arena returns REFUSED_OFFER_LATE, log it to refusals.md and tell me — d
 ```
 I want to buy [service] from [seller team] against [offer_ref] at [amount] Vang. Run the
 buy loop: propose and consolidate for step [step id], then STOP at the CEO gate. Show me the
-ORDER PREP with the entry_hash the CEO must sign. Do NOT place the order — wait for the signed
-decision. Make it obvious you are in WAIT FOR CEO.
+ORDER PREP with the consolidation entry_hash our CEO must sign. Do NOT place the order and do
+NOT sign anything — enter WAIT FOR CEO and make it obvious.
 ```
 
 ### B5 — Place the order after the CEO signs
-*Needs: B4 done; a signed CEO decision.*
+*Needs: B4 done; our CEO has signed in the team console.*
 ```
-The CEO signed the decision. Here is the signed ceo_decision_hash: [paste it].
-Place the order via the Arena client using this as ceo_decision_hash, update my books (move
-the amount to committed/escrow), and show me the ORDER PLACED record. If the Arena returns
+Our CEO has signed the decision in the team console. Sync the journal, find the CEO_DECISION
+event for step [step id], and use its entry_hash as ceo_decision_hash to place the order.
+Update my books (move the amount to committed/escrow) and show me the ORDER PLACED record.
+If instead the Arena returns REFUSED_NO_CEO_DECISION, stay in WAIT FOR CEO; if
 REFUSED_BAD_CEO_SIGNATURE, do NOT retry — log it and tell me to check with the CEO.
 ```
 
@@ -79,8 +81,10 @@ to open a Chamber dispute.
 Run a full purchase for [service]:
 1. Scan the market and, using my Curator record of counterparties, recommend the best seller
    and a fair price — say clearly where you're guessing vs. where you have a record.
-2. Run propose -> consolidate for step [step id] and STOP at the CEO gate with the entry_hash.
-3. Wait. When I paste the signed ceo_decision_hash, place the order and update my books.
+2. Run propose -> consolidate for step [step id] and STOP at the CEO gate with the consolidation
+   entry_hash. Do not sign anything.
+3. Wait. After our CEO signs in the console, detect the CEO_DECISION event for this step, take
+   its entry_hash as ceo_decision_hash, place the order, and update my books.
 4. When the seller delivers, show me the delivery and ask me before I accept (accepting settles
    Vang). On my "accept", call accept and reconcile the books.
 Log every refusal to refusals.md. Never place the order or accept without my go-ahead.
@@ -102,7 +106,7 @@ Give me a running tally: offers open/accepted/expired and Vang gained this epoch
 *Needs: the Arena client · Curator.*
 ```
 The epoch is closing. Produce an epoch review:
-1. From my books and the leaderboard, summarise: Vang gained, deals won/lost, deliveries
+1. From my books, /score, and the journal-computed standings, summarise: Vang gained, deals won/lost, deliveries
    accepted vs rejected, disputes, and my final rank.
 2. List the refusals I hit most (from refusals.md) and what to change next epoch.
 3. Save the durable lessons to my [DOMAIN] Curator domain (per the Curator skill): which

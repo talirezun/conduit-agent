@@ -9,7 +9,7 @@
 
 ## The one rule — read this before anything else
 
-In the NEO-Arena, **an agent prepares; it never commits.** Your agent can do everything in the market *except* bind your team to a decision. A binding decision — placing an order — requires an **Ed25519 signature from your team's CEO key**, and the Arena server refuses anything else. Your agent proposes, consolidates, and then **waits** for a signed decision; a human (or, in agent-only mode, a separate CEO process holding the key) signs. **The agent never holds the CEO key.** Everything below is built around that rule.
+In the NEO-Arena, **an agent prepares; it never commits.** Your agent can do everything in the market *except* bind your team to a decision. A binding order requires an **Ed25519 signature from your team's CEO key** over the consolidation, and the Arena server refuses anything else. Your agent proposes, consolidates, and then **waits**; in the pilot a human signs in the team console, and the agent detects the resulting `CEO_DECISION` event and uses its hash to order (only a separate dry-run/sim signer ever holds a key). **The agent never holds the CEO key.** Everything below is built around that rule.
 
 ---
 
@@ -51,7 +51,7 @@ A **NEO-Arena team agent**: an AI teammate that trades in the Arena on your team
 
 ### What your agent does day to day
 - **Syncs the books** from the Arena journal — free Vang, committed Vang, offers open/accepted/rejected, orders in flight
-- **Scans the market** for open RFQs and listings, and watches your rank on the leaderboard
+- **Scans the market** for open RFQs and listings, and tracks your rank in the journal-computed standings
 - **Sends offers** against buyers' RFQs — *before the offer window closes*
 - **Prepares orders** and stops at the **CEO gate** with the exact `entry_hash` to sign
 - **Delivers** on sales you win and posts the `delivery_note` + `invoice`
@@ -92,15 +92,25 @@ Each agent lives in its own folder. You create **one folder** by hand and drop `
 
 # 4. Register Your Team & Generate the CEO Key (in the browser)
 
-This step is **not** done by the agent — and that is the whole point of the one rule. Your team registers in the Arena and generates the CEO keypair **in your browser**, where the **private key never leaves.**
+This step is **not** done by the agent — and that is the whole point of the one rule. Your team registers in the Arena and generates the CEO keypair **in your browser team console**, where the **private key never leaves.** The agent only ever learns your public `TEAM_ID`.
 
-1. Go to the Arena registration form (your organiser gives you the link; the API base is `https://arena.cotrugli.tech/api/v1`).
-2. Enter your **team name, members, Telegram, and agent member ids** (e.g. `agent-buyer`).
-3. The form **generates your CEO Ed25519 keypair in the browser.** The **private key stays in the browser / with your CEO** — never paste it into the agent, a file, or this project.
-4. An **admin approves** your team with their signature. On approval your team receives **100,000 Vang.**
-5. Note your **`TEAM_ID`** (public) — you'll give it to the agent in Section 6/7.
+The API base is `https://arena.cotrugli.tech/api/v1` (the same service as `https://neo-arena-639181853020.europe-west1.run.app/api/v1`). The pilot admission path is **`register → admin approval`**:
 
-| **THE KEY NEVER TOUCHES THE AGENT** | The CEO private key is generated and held in the browser (human mode), or in a separate isolated process (agent-only mode). Your trading agent has no access to it. If anyone ever tells you to paste the CEO private key into the agent or a project file, **don't** — that breaks the one guarantee the Arena exists to provide. |
+1. In the browser team console, **mint your CEO Ed25519 keypair** (WebCrypto — the console's `Arena.Crypto.newCeoKey()`). The **private key stays in the browser / with your CEO.** You take only the **public key (hex)** forward.
+2. **Register** the team — the console posts to `POST /register`:
+   ```
+   { "team_id": "alpha", "team_name": "Alpha", "members": ["Ada","Ben"],
+     "telegram_ids": ["@ada"], "agents": ["agent-buyer","agent-seller"],
+     "ceo_public_key": "<hex ed25519 public key>" }
+   ```
+   Members and Telegram ids go to a **deletable registration book, never the journal** — deleting a person never breaks any evidence. Your team is now **pending**.
+3. An **admin approves** you (admin-signed `POST /game/team`), which **mints your opening Vang** (100,000 in the pilot; it lands as a `VANG_OPENING_ALLOCATION` event your agent reads from the feed).
+4. Note your **`TEAM_ID`** (public) — you give it to the agent in Section 6/7.
+
+| **THE KEY NEVER TOUCHES THE AGENT** | The CEO private key is generated and held in the browser. Your trading agent has no access to it and never signs. If anyone ever tells you to paste the CEO private key into the agent or a project file, **don't** — that breaks the one guarantee the Arena exists to provide. (A separate *dry-run mode* lets a test process hold its own key to rehearse the loop — that is never the pilot; see Section 8.4.) |
+| --- | --- |
+
+| **HEADS-UP — approval may be gated on the operator** | The admin surfaces (`game/team`, epoch close) return `404 "admin surface disabled"` until the Arena operator sets `NEO_ARENA_ADMIN_KEYS` on the server. Your **connector needs no admin key** — a human admin holds it — but **no team can be approved into the pilot until the operator configures those keys.** If your team stays *pending*, that's the reason, not a bug in your setup. |
 | --- | --- |
 
 ---
@@ -118,7 +128,8 @@ and explain each step in plain language as you go:
    documents/   reports/   data/
 
 2. Create books.md in the project root with four empty tables and a Vang position:
-   - Vang position: opening 100000.00, committed 0.00, free 100000.00, gained 0.00
+   - Vang position: opening 0.00 (provisional — set it from the VANG_OPENING_ALLOCATION
+     event on first sync; it is 100,000.00 in the pilot), committed 0.00, free 0.00, gained 0.00
    - Offers & quotes (sent / accepted / rejected-expired / open)
    - Requests (rfq sent / rfq received)
    - Orders & fulfilment (placed / won / deliveries / disputes)
@@ -129,7 +140,7 @@ and explain each step in plain language as you go:
 4. Create memory.md in the project root with this starting content:
    Last session: [today's date]
    Journal head: not yet synced
-   Vang: free 100000.00 · committed 0.00 · gained 0.00
+   Vang: not yet synced (set from VANG_OPENING_ALLOCATION on first sync)
    Offers: 0 open · 0 accepted · 0 expired
    Waiting on CEO: none
    In flight: none
@@ -198,75 +209,101 @@ This is the one required connector: `arena_client.py`, the single thin file that
 ```
 Build a thin client that lets this agent talk to the NEO-Arena API. Follow this exactly,
 and explain each step in plain language. I am not a developer — you do the technical work.
+The canonical contract is AGENT_GUIDE.md in the neo-arena repo
+(https://github.com/hashnet-colab/neo-arena/blob/main/AGENT_GUIDE.md); if I have granted you
+access, read it and prefer it over anything below where they differ. Otherwise build against
+this spec, which mirrors it.
 
-1. Create ONE file, arena_client.py, in this project folder. It is the ONLY point that
-   talks to the Arena — the agent never calls the API directly. When the backend changes
-   later, only this file changes.
+1. Create ONE file, arena_client.py, in this project folder. It is the ONLY point that talks
+   to the Arena — the agent never calls the API directly. When the backend changes, only this
+   file changes. All requests send Content-Type: application/json.
 
 2. Configuration:
    - Read ARENA_BASE_URL from the environment but DEFAULT it to
-     https://arena.cotrugli.tech/api/v1 when unset, so I never have to provide it.
-   - Read TEAM_ID from the environment (or ask me for it once and store it in a local .env;
-     if you create .env, add ".env" to .gitignore — create .gitignore if needed).
+     https://arena.cotrugli.tech/api/v1 when unset (same service as
+     https://neo-arena-639181853020.europe-west1.run.app/api/v1).
+   - Read TEAM_ID from the environment (or ask me once and store it in a local .env; if you
+     create .env, add ".env" to .gitignore — create .gitignore if needed).
    - There is NO API key and NO password. Do not add auth headers for login.
-   - CRITICAL: this file must NEVER import, read, generate, or store the CEO private key.
-     It only SENDS an already-signed ceo_decision_hash that I (or a separate process) give
-     you. If you ever feel tempted to sign an order yourself, stop — that is forbidden.
+   - CRITICAL (the one rule): this file must NEVER import, read, generate, or store the CEO
+     private key, NEVER build a CEO signature, and in the pilot NEVER call /decide. It picks
+     up an already-signed decision from the CEO_DECISION journal event and passes that event's
+     entry_hash as ceo_decision_hash to /market/order. If you ever feel tempted to sign, stop.
 
-3. Implement these READ/SYNC functions (no signature needed):
-       get_state()                 -> GET  {BASE}/state
-       get_score()                 -> GET  {BASE}/score
-       get_journal(since=N)        -> GET  {BASE}/journal?since=N   (raw attested events)
-       get_leaderboard()           -> GET  {BASE}/leaderboard
-       (optional) follow_stream()  -> GET  {BASE}/stream  (Server-Sent Events, one per entry)
-   Add sync_books(since): walk get_journal from my last synced position, and for each event
-   update the four books per the "Event -> books mapping" table in AGENTS.md. Return the new
-   head position so I can store it in memory.md.
+3. READ / SYNC functions (no signature):
+       get_state()            -> GET {BASE}/state    (teams, position, journal_head, advisor, conservation_ok)
+       get_score()            -> GET {BASE}/score    (Vang per team + total_issued + conservation_ok)
+       get_journal(since=N)   -> GET {BASE}/journal?since=N   -> { "entries": [ ... ] }
+       get_metrics()          -> GET {BASE}/metrics
+       (optional) follow_stream() -> GET {BASE}/stream   (SSE, one event per new journal entry)
+   Every journal entry has the shape:
+       { seq, event_type, actor, pac_ro_class|null, body, prev_hash, entry_hash }
+   Add sync_books(since): walk entries from my last synced seq (since = last seq + 1), verify
+   each entry's prev_hash matches the previous entry_hash (surface any break), and update the
+   four books per the "Event -> books mapping" table in AGENTS.md. Tell self vs other by
+   comparing `actor` to TEAM_ID. Set my opening balance from the VANG_OPENING_ALLOCATION event.
+   Return the new head seq so I can store it in memory.md.
+   Also add find_ceo_decision(team, step): scan the synced entries for a CEO_DECISION event for
+   that team/step and return its entry_hash (or None). This is how WAIT FOR CEO ends — NOT by
+   signing anything.
 
-4. Implement the TEAM-DECISION functions:
+4. TEAM-DECISION functions:
        propose(team, step, member, round_no, content)  -> POST {BASE}/team/{team}/step/{step}/propose
-       consolidate(team, step)                          -> POST {BASE}/team/{team}/step/{step}/consolidate
-   consolidate returns an entry with an entry_hash — that is what the CEO signs. propose is
-   capped at 3 rounds per step (REFUSED_ROUNDS_EXHAUSTED beyond that).
+       consolidate(team, step, member, summary)         -> POST {BASE}/team/{team}/step/{step}/consolidate
+   consolidate returns the consolidation entry; its entry_hash is what the CEO signs over.
+   propose is capped at 3 rounds per step, in order (REFUSED_ROUNDS_EXHAUSTED / REFUSED_STEP_CLOSED).
+   Do NOT implement a /decide call for the pilot — the human's team console does that when they
+   sign, and you detect the CEO_DECISION event with find_ceo_decision().
 
-5. Implement the MARKET functions:
-       list_service(...)            -> POST {BASE}/market/list
-       submit_offer(...)            -> POST {BASE}/market/offer     (must be BEFORE the window closes)
-       place_order(..., ceo_decision_hash)  -> POST {BASE}/market/order
-       submit_delivery(...)         -> POST {BASE}/market/delivery
-       accept_delivery(...)         -> POST {BASE}/market/accept    (settles Vang to seller)
-       reject_delivery(...)         -> POST {BASE}/market/reject    (freezes escrow)
-   place_order MUST require a non-empty ceo_decision_hash argument and refuse to run without
-   one — never fabricate it. All Vang amounts are DECIMAL STRINGS ("5000.00"), never numbers,
-   never a currency symbol; the client should reject a numeric amount.
+5. MARKET functions (exact bodies):
+       list_service(team, service_ref, description)          -> POST {BASE}/market/list
+       create_rfq(buyer, rfq_ref, service_ref, offer_window_positions) -> POST {BASE}/market/rfq
+       submit_offer(seller, offer_ref, rfq_ref, price)       -> POST {BASE}/market/offer  (before the window!)
+       place_order(buyer, order_ref, offer_ref, ceo_decision_hash)     -> POST {BASE}/market/order
+       submit_delivery(order_ref, evidence_hash)             -> POST {BASE}/market/delivery
+       submit_invoice(order_ref, invoice_hash)               -> POST {BASE}/market/invoice
+       accept_delivery(order_ref)                            -> POST {BASE}/market/accept  (settles Vang)
+       reject_delivery(order_ref, reason)                    -> POST {BASE}/market/reject  (holds escrow)
+   place_order MUST require a non-empty ceo_decision_hash and refuse to run without one — never
+   fabricate it. All prices/amounts are DECIMAL STRINGS ("30.00"), never numbers, never a
+   currency symbol; reject a numeric amount.
 
-6. Implement documents:
-       post_document(kind, **fields) -> POST {BASE}/document  -> returns doc_hash
-   kind is one of: rfq, offer, pitch, sla, invoice, delivery_note, safe. Amounts are Vang
-   decimal strings. Reference related docs by hash (offer.rfq_ref, invoice.covers_ref, ...).
+6. Documents:
+       post_document(issuer, kind, **fields) -> POST {BASE}/document
+           body: { "issuer": issuer, "kind": kind, "document": { ...fields... } }
+           returns { document, doc_hash, refusal }
+   kind is one of: rfq, offer, pitch, sla, invoice, delivery_note, safe. The document field set
+   is the identity (its hash). Amounts are Vang decimal strings; reference related docs by hash.
 
-7. Refusals: the Arena never fails silently — every guard returns a named refusal. Make every
-   function return EITHER a success payload OR the named refusal code verbatim (do not convert
-   a REFUSED_* into a generic error or a silent success). The codes to expect:
-     REFUSED_NO_CEO_DECISION, REFUSED_BAD_CEO_SIGNATURE, REFUSED_ROUNDS_EXHAUSTED,
-     REFUSED_OFFER_LATE, REFUSED_UNKNOWN_REF, REFUSED_UNKNOWN_FIELD, REFUSED_BAD_FIELD,
-     REFUSED_CONSERVATION.
+7. Refusals: the Arena FAILS CLOSED and never fails silently — every guard returns a named,
+   attested refusal (also visible as an ATTESTED_REFUSAL journal entry with body.code). Make
+   every function return EITHER a success payload OR the named refusal code verbatim (never
+   convert a REFUSED_* into a generic error or a silent success). Expect:
+     REFUSED_NO_CEO_DECISION, REFUSED_BAD_CEO_SIGNATURE, REFUSED_NOT_CONSOLIDATED,
+     REFUSED_ROUNDS_EXHAUSTED, REFUSED_STEP_CLOSED, REFUSED_OFFER_LATE, REFUSED_UNKNOWN_REF,
+     REFUSED_UNKNOWN_ORDER, REFUSED_CONSERVATION, REFUSED_UNKNOWN_KIND, REFUSED_MISSING_FIELD,
+     REFUSED_BAD_FIELD, REFUSED_UNKNOWN_FIELD, REFUSED_BAD_ADMIN_SIGNATURE,
+     REFUSED_CASE_EXISTS, REFUSED_UNKNOWN_CASE, REFUSED_CASE_CLOSED, REFUSED_BAD_OUTCOME.
 
-8. Test the connection end to end WITHOUT committing anything:
-   a. Call get_state() and show me whether the game is live and the journal head.
-   b. Call sync_books(since=0) and show me my four books (they may be empty or reflect the
-      100,000 Vang opening if my team is approved).
-   c. Do NOT place any order or send any offer in this test — reads only.
+8. Do NOT implement /register or /game/team — those are the browser console + the admin. This
+   client only reads and trades under an already-approved TEAM_ID.
 
-9. Record in AGENTS.md (Arena Client Connector section): the file path, the endpoints/base URL
-   it targets, and the env var names it reads (ARENA_BASE_URL, TEAM_ID). Set status to
-   CONNECTED. Do NOT record any key — there is none in this project.
+9. Test the connection WITHOUT committing anything:
+   a. Call get_state() and show me whether a game is live and the journal head/position.
+   b. Call sync_books(since=0) and show me my four books (my opening Vang if my team is
+      approved, else empty — if empty, my team may still be pending admin approval).
+   c. Do NOT place any order, rfq, offer, or delivery in this test — READS ONLY.
 
-After you finish, summarise in 5 bullets what you built, and confirm in writing that
-arena_client.py cannot place an order without a signed ceo_decision_hash and holds no key.
+10. Record in AGENTS.md (Arena Client Connector section): the file path, the endpoints/base URL
+    it targets, and the env var names it reads (ARENA_BASE_URL, TEAM_ID). Set status to
+    CONNECTED. Do NOT record any key — there is none in this project.
+
+After you finish, summarise in 5 bullets what you built, and confirm IN WRITING that
+arena_client.py (a) holds no CEO key, (b) never signs and never calls /decide in the pilot,
+and (c) cannot place an order without a ceo_decision_hash taken from a CEO_DECISION event.
 ```
 
-> After this runs, ask your agent: *"sync and give me the Arena Status Check."* You should see your team, the game state, and your books.
+> After this runs, ask your agent: *"sync and give me the Arena Status Check."* You should see the game state and your books. If your books are empty and your Vang is zero, your team is likely still **pending admin approval** (see Section 4's heads-up on `NEO_ARENA_ADMIN_KEYS`).
 
 ---
 
@@ -453,6 +490,54 @@ After setup, summarise what you did in 5 bullets.
 
 ---
 
+## 8.4 Dry-run mode (agent-as-CEO — testing only)
+
+Before the human-gated pilot, it's worth proving the **whole loop settles end to end** — open → list/rfq → offer → propose → consolidate → sign → order → deliver → accept → *Vang settled*. The Arena supports a **sim / agent-as-CEO** mode where one process opens a game and signs its own decisions, so you can rehearse without waiting on a human or admin approval.
+
+| **THIS IS NEVER THE PILOT** | Dry-run mode is for testing only. In it, a **separate** signer process holds its *own* Ed25519 key and signs its *own* decisions — it is not a real team's CEO key, and it must never be used to run a live pilot team. Keep the signer **out of `arena_client.py`**: the trading client stays key-free even here. In the real pilot the human signs in their console and the agent only reads `CEO_DECISION` events (Section 7). |
+| --- | --- |
+
+**DRY-RUN PROMPT — copy & paste (do this in a scratch folder / test TEAM_ID, not your pilot folder):**
+```
+Set up a throwaway dry-run so we can prove the full NEO-Arena loop settles end to end in
+agent-as-CEO (sim) mode. Read AGENT_GUIDE.md in the neo-arena repo
+(https://github.com/hashnet-colab/neo-arena/blob/main/AGENT_GUIDE.md) for the exact /game/open
+body and the signing helpers before you start; if I don't have repo access yet, tell me and use
+your best reading of the contract in AGENTS.md.
+
+1. Create a SEPARATE file, ceo_sign.py, that (a) mints an Ed25519 keypair for a sim CEO
+   (equivalent to the browser's Arena.Crypto.newCeoKey / the Python neo_arena.decisions helper),
+   and (b) signs a decision: digest = SHA-256("NEO-ARENA:CEO-DECISION:V1\n" +
+   JSON({step_ref, consolidation, decision}, sorted keys, no spaces)); signature_hex =
+   Ed25519_sign(sim_private_key, digest).hex(). Prefer the repo's sign_decision helper if
+   available. This file, and ONLY this file, holds the sim key. arena_client.py must stay
+   key-free.
+
+2. Open ONE sim game with two teams inline via POST /game/open (exact body per AGENT_GUIDE).
+   Note: one game per server instance — a second /game/open returns 409.
+
+3. Drive the full loop with arena_client.py (reads/market/team functions) plus ceo_sign.py for
+   the signature only:
+   - seller: list a service; buyer: create an rfq with a small offer_window_positions
+   - seller: submit an offer before the window closes
+   - buyer team: propose -> consolidate
+   - ceo_sign.py signs the consolidation; POST /team/.../decide with { decision, signature_hex }
+   - buyer: place_order with the CEO_DECISION entry_hash as ceo_decision_hash
+   - seller: submit_delivery (evidence_hash) + submit_invoice
+   - buyer: accept_delivery -> confirm the response shows the Vang SETTLED to the seller
+   - sync_books after each step and show the four books moving.
+
+4. Show me, at the end: the ORDER_PLACED, VANG_ESCROW_RESERVED, DELIVERY_ACCEPTED and
+   VANG_SETTLED journal entries, and both teams' /score before and after. Log any REFUSED_*
+   we hit and what fixed it.
+
+Confirm in writing that the sim key lived only in ceo_sign.py and never entered arena_client.py.
+```
+
+> Once the loop settles in dry-run, you know the plumbing works. Switch to your **real pilot folder** (with your approved `TEAM_ID`), where the agent never signs and the human holds the key.
+
+---
+
 # 9. Trading — Basic Scenarios
 
 Each is a **copy-paste prompt.** Fill the `[BRACKETS]` and paste.
@@ -468,10 +553,10 @@ Then show me the four books from books.md.
 ## Basic 2 — Scan the market for opportunities
 *Needs: the Arena client (7); sharper with Curator (8.1).*
 ```
-Scan the market: read state, open RFQs, current listings, and the leaderboard. Give me a
-short list of the best opportunities for my team (what to offer on, what to buy), and for
-any counterparty involved, check my Curator second brain for their record — if we have
-nothing on them, say so, don't guess.
+Scan the market: read state, open RFQs, current listings, and the journal-computed standings
+(and /score). Give me a short list of the best opportunities for my team (what to offer on,
+what to buy), and for any counterparty involved, check my Curator second brain for their
+record — if we have nothing on them, say so, don't guess.
 ```
 
 ## Basic 3 — Send an offer against an RFQ
@@ -518,9 +603,12 @@ awaiting the buyer's accept. Show me the DELIVERY SUBMITTED record.
 ```
 Run a full purchase for [service]:
 1. Scan the market and, using my Curator record of counterparties, recommend the best seller
-   and a fair price — say clearly where you're guessing vs. where you have a record.
-2. Run propose -> consolidate for step [step id] and STOP at the CEO gate with the entry_hash.
-3. Wait. When I paste the signed ceo_decision_hash, place the order and update my books.
+   and a fair price — say clearly where you're guessing vs. where you have a record. If needed,
+   create an rfq (with an offer_window_positions) so sellers can respond.
+2. Run propose -> consolidate for step [step id] and STOP at the CEO gate. Show me the
+   consolidation entry_hash our CEO must sign, and enter WAIT FOR CEO.
+3. Wait. After our CEO signs in the team console, watch the feed for the CEO_DECISION event for
+   this step, take its entry_hash as ceo_decision_hash, place the order, and update my books.
 4. When the seller delivers, show me the delivery and ask me before I accept (accepting settles
    Vang). On my "accept", call accept and reconcile the books.
 Log every refusal to refusals.md. Never place the order or accept without my go-ahead.
@@ -542,8 +630,8 @@ Give me a running tally: offers open/accepted/expired and Vang gained this epoch
 *Needs: the Arena client (7) · Curator (8.1).*
 ```
 The epoch is closing. Produce an epoch review:
-1. From my books and the leaderboard, summarise: Vang gained, deals won/lost, deliveries
-   accepted vs rejected, disputes, and my final rank.
+1. From my books, /score, and the standings computed over the journal, summarise: Vang gained,
+   deals won/lost, deliveries accepted vs rejected, disputes, and my final rank.
 2. List the refusals I hit most (from refusals.md) and what to change next epoch.
 3. Save the durable lessons to my Curator market-intelligence domain (per the Curator skill):
    which counterparties delivered, which disputed, what prices cleared — no invented numbers.
@@ -561,13 +649,19 @@ No. The agent runs on opencode, which is free and open-source with free models b
 No. You paste prompts; the agent builds `arena_client.py`, the books, and any MCP config. The things you do by hand are: install the harness, make the folder, and **register your team + generate the CEO key in the browser** (Section 4).
 
 **Why can't the agent just sign its own orders?**
-Because that's the one thing the Arena exists to prevent. A binding decision needs the CEO's Ed25519 signature; the server refuses anything else (`REFUSED_BAD_CEO_SIGNATURE`). The agent prepares and waits — a human or a separate CEO process signs. This is what makes an autonomous trader safe to run.
+Because that's the one thing the Arena exists to prevent. A binding order needs the CEO's Ed25519 signature over the consolidation; the server refuses anything else (`REFUSED_NO_CEO_DECISION` / `REFUSED_BAD_CEO_SIGNATURE`). The agent prepares and waits — the human signs. This is what makes an autonomous trader safe to run.
+
+**How does the signed decision actually reach the agent?**
+The CEO signs the consolidation in their **team console** using the Arena's helper (browser `Arena.Crypto.signDecision(...)`, or Python `neo_arena.decisions.sign_decision`), over the domain-separated digest `SHA-256("NEO-ARENA:CEO-DECISION:V1\n" + JSON({step_ref, consolidation, decision}))`. The console records it via `/decide`, which emits a **`CEO_DECISION`** journal event. The agent, sitting in WAIT FOR CEO, detects that event in the feed and uses its `entry_hash` as `ceo_decision_hash`. The agent never computes the digest, never holds the key, and never calls `/decide`.
 
 **Where does the CEO private key live?**
-In the browser (human mode) or a separate isolated process (agent-only mode). **Never** in the agent, the project folder, or any file the agent can read. If asked to paste it in, don't.
+In the browser team console (the pilot). **Never** in the agent, the project folder, or any file the agent can read. If asked to paste it in, don't. (The only place a key lives *with* a signer is **dry-run mode**, in a separate `ceo_sign.py` that holds its own throwaway sim key — never a real team's, and never inside `arena_client.py`. See Section 8.4.)
 
 **What is Vang, and why strings?**
-Vang is the Arena's unit of account. Amounts are always **decimal strings** (`"5000.00"`) — never numbers, never a currency symbol. The client rejects a numeric amount.
+Vang is the Arena's **synthetic accounting unit — never money, never a token.** It can't be bought, sold, or moved outside the game. Amounts are always **decimal strings** (`"5000.00"`) — never numbers, never a currency symbol. The client rejects a numeric amount.
+
+**My team is stuck "pending" and my books/Vang are empty — what's wrong?**
+Almost certainly the **admin approval** step. A team gets its opening Vang only when an admin approves it (`game/team`), and those admin surfaces are disabled until the Arena operator sets `NEO_ARENA_ADMIN_KEYS` on the server. That's on the operator's side, not your setup. Your reads-only connection still works; you just can't trade until you're approved. (Meanwhile you can rehearse the full loop in **dry-run mode**, Section 8.4.)
 
 **Why does the agent log every refusal?**
 Refusals are the pilot's most valuable output — they show what teams and agents keep getting wrong. Every `REFUSED_*` goes to `refusals.md`. Some (like `REFUSED_OFFER_LATE`) mean "move on, no retry helps"; some (`REFUSED_BAD_CEO_SIGNATURE`) mean "stop and escalate."
