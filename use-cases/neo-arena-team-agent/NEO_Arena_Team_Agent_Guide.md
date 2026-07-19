@@ -238,11 +238,13 @@ this spec, which mirrors it.
        (optional) follow_stream() -> GET {BASE}/stream   (SSE, one event per new journal entry)
    Every journal entry has the shape:
        { seq, event_type, actor, pac_ro_class|null, body, prev_hash, entry_hash }
-   Add sync_books(since): walk entries from my last synced seq (since = last seq + 1), verify
-   each entry's prev_hash matches the previous entry_hash (surface any break), and update the
-   four books per the "Event -> books mapping" table in AGENTS.md. Tell self vs other by
-   comparing `actor` to TEAM_ID. Set my opening balance from the VANG_OPENING_ALLOCATION event.
-   Return the new head seq so I can store it in memory.md.
+   Add sync_books(since): walk entries from my last synced seq, verify each entry's prev_hash
+   matches the previous entry_hash (surface any break), and update the four books per the
+   "Event -> books mapping" table in AGENTS.md. Apply IDEMPOTENTLY: track the last applied seq
+   and skip any entry already applied, so whatever `since` inclusive/exclusive convention the
+   engine uses cannot skip or double-count (default to since = last applied seq + 1, but do not
+   rely on it — dedupe by seq). Tell self vs other by comparing `actor` to TEAM_ID. Set my
+   opening balance from the VANG_OPENING_ALLOCATION event. Return the new head seq for memory.md.
    Also add find_ceo_decision(team, step): scan the synced entries for a CEO_DECISION event for
    that team/step and return its entry_hash (or None). This is how WAIT FOR CEO ends — NOT by
    signing anything.
@@ -265,8 +267,10 @@ this spec, which mirrors it.
        accept_delivery(order_ref)                            -> POST {BASE}/market/accept  (settles Vang)
        reject_delivery(order_ref, reason)                    -> POST {BASE}/market/reject  (holds escrow)
    place_order MUST require a non-empty ceo_decision_hash and refuse to run without one — never
-   fabricate it. All prices/amounts are DECIMAL STRINGS ("30.00"), never numbers, never a
-   currency symbol; reject a numeric amount.
+   fabricate it. All prices/amounts are DECIMAL STRINGS WITH TWO DECIMAL PLACES ("30.00"), never
+   numbers, never floats, never a currency symbol; reject a numeric amount. The engine's money
+   type is ground truth: if it uses integer minor units on the wire, convert ONLY inside this
+   client and keep the agent-facing values as decimal strings.
 
 6. Documents:
        post_document(issuer, kind, **fields) -> POST {BASE}/document
@@ -284,6 +288,9 @@ this spec, which mirrors it.
      REFUSED_UNKNOWN_ORDER, REFUSED_CONSERVATION, REFUSED_UNKNOWN_KIND, REFUSED_MISSING_FIELD,
      REFUSED_BAD_FIELD, REFUSED_UNKNOWN_FIELD, REFUSED_BAD_ADMIN_SIGNATURE,
      REFUSED_CASE_EXISTS, REFUSED_UNKNOWN_CASE, REFUSED_CASE_CLOSED, REFUSED_BAD_OUTCOME.
+   Use these strings VERBATIM as the engine emits them (the REFUSED_ prefix is part of the string
+   and matches an ATTESTED_REFUSAL entry's body.code) — agents string-match them. If the engine
+   emits a code not in this list, log it verbatim and surface it rather than remapping it.
 
 8. Do NOT implement /register or /game/team — those are the browser console + the admin. This
    client only reads and trades under an already-approved TEAM_ID.
@@ -304,6 +311,38 @@ and (c) cannot place an order without a ceo_decision_hash taken from a CEO_DECIS
 ```
 
 > After this runs, ask your agent: *"sync and give me the Arena Status Check."* You should see the game state and your books. If your books are empty and your Vang is zero, your team is likely still **pending admin approval** (see Section 4's heads-up on `NEO_ARENA_ADMIN_KEYS`).
+
+## 7.1 Document field sets (per kind)
+
+Each of the seven document kinds has a **closed field set** — its hash *is* the document's identity, so a wrong or missing field is rejected (attested: `REFUSED_MISSING_FIELD` / `REFUSED_BAD_FIELD` / `REFUSED_UNKNOWN_FIELD` / `REFUSED_UNKNOWN_KIND`). Build documents to this schema so you don't discover the fields by trial.
+
+| kind | required fields | optional |
+|---|---|---|
+| `rfq` | `title`, `description` | `quantity`, `unit`, `needed_by`, `budget` |
+| `offer` | `rfq_ref` (or `null`), `title`, `scope`, `amount`, `valid_until` | — |
+| `pitch` | `one_liner`, `problem`, `solution`, `market`, `business_model`, `team`, `ask` | `raise` |
+| `sla` | `covers_ref`, `service_description`, `slo_definitions[]`, `term_start`, `term_end`, `remedy` | — |
+| `invoice` | `covers_ref`, `line_items[]`, `subtotal`, `tax`, `total`, `due_at` | — |
+| `delivery_note` | `fulfills_ref`, `line_items[]`, `dispatched_at` | — |
+| `safe` | `pitch_ref`, `investment` | `cap`, `discount`, `mfn` |
+
+All amounts (`amount`, `budget`, `subtotal`, `tax`, `total`, `investment`, line-item values) are **Vang decimal strings, 2 dp**. `*_ref` fields are the `doc_hash` of the related document (or a market ref). An `invoice`'s `subtotal + tax` must equal `total`, or you get `REFUSED_CONSERVATION`.
+
+| **PROVISIONAL — reconcile against the engine** | This table is the candidate field spec (`ARENA_DOC_FIELDS_v0_1`); the **engine's document validator is the authority** — it emits the `REFUSED_*_FIELD` codes, not these docs. If any field name, requiredness, or the amount/currency representation differs in the engine, the engine wins — update this table to match. When you have `AGENT_GUIDE.md` access, confirm each row before relying on it. |
+| --- | --- |
+
+## 7.2 Known assumptions to confirm against the engine
+
+The connector is built to the contract in your `AGENTS.md`, which mirrors the engine brief. A few points can only be pinned against the live engine (`AGENT_GUIDE.md` + source). The client is written to be **safe under either answer**, but confirm these when you have repo access, and correct `AGENTS.md` / the client if any differ:
+
+1. **`/market/order` fields** — are `{buyer, order_ref, offer_ref, ceo_decision_hash}` exact and complete, or is `amount`/`price` also required? Does the engine look the decision up by `ceo_decision_hash == CEO_DECISION.entry_hash`?
+2. **`/journal?since=N`** — inclusive or exclusive of `N`? (The client dedupes by `seq`, so it's safe either way — but confirm.)
+3. **`/market/accept` & `/market/reject`** — is `{order_ref}` (+`reason`) complete, or is there a gate/signature?
+4. **Four-books completeness** — does `ORDER_PLACED` let the *seller* identify itself (its `actor` is the buyer), and do `VANG_ESCROW_RESERVED/RELEASED` and `VANG_SETTLED` each carry team + amount?
+5. **Canonicalization** — the CEO digest uses RFC 8785 / JCS, the same primitive the Ledger hashes with (see §8.4 / FAQ). Confirm the engine agrees.
+6. **Money type** — decimal-string (2 dp) vs integer minor units on the wire (the client converts at the boundary; the engine's type is ground truth).
+7. **Standings** — with no `/leaderboard`, the canonical definitions of *gained / supplier-reliability / activity* live in the engine; use the engine's definition, don't invent one.
+8. **Team console** — the actual team-facing URL where the human mints the CEO key and registers, and whether `/register` is console-only or the agent may POST it with the public key.
 
 ---
 
@@ -508,10 +547,12 @@ your best reading of the contract in AGENTS.md.
 1. Create a SEPARATE file, ceo_sign.py, that (a) mints an Ed25519 keypair for a sim CEO
    (equivalent to the browser's Arena.Crypto.newCeoKey / the Python neo_arena.decisions helper),
    and (b) signs a decision: digest = SHA-256("NEO-ARENA:CEO-DECISION:V1\n" +
-   JSON({step_ref, consolidation, decision}, sorted keys, no spaces)); signature_hex =
-   Ed25519_sign(sim_private_key, digest).hex(). Prefer the repo's sign_decision helper if
-   available. This file, and ONLY this file, holds the sim key. arena_client.py must stay
-   key-free.
+   JCS({step_ref, consolidation, decision})); signature_hex = Ed25519_sign(sim_private_key,
+   digest).hex(). JCS = RFC 8785 canonical JSON — it MUST be the SAME canonicalization primitive
+   the engine/Ledger uses for all hashing, NOT a separate "sorted-keys, no-spaces" rule (a second
+   grammar gives byte-different digests and silent signature mismatches). STRONGLY prefer the
+   repo's sign_decision helper so you inherit the exact canonicalization instead of reimplementing
+   it. This file, and ONLY this file, holds the sim key. arena_client.py must stay key-free.
 
 2. Open ONE sim game with two teams inline via POST /game/open (exact body per AGENT_GUIDE).
    Note: one game per server instance — a second /game/open returns 409.
@@ -652,7 +693,7 @@ No. You paste prompts; the agent builds `arena_client.py`, the books, and any MC
 Because that's the one thing the Arena exists to prevent. A binding order needs the CEO's Ed25519 signature over the consolidation; the server refuses anything else (`REFUSED_NO_CEO_DECISION` / `REFUSED_BAD_CEO_SIGNATURE`). The agent prepares and waits — the human signs. This is what makes an autonomous trader safe to run.
 
 **How does the signed decision actually reach the agent?**
-The CEO signs the consolidation in their **team console** using the Arena's helper (browser `Arena.Crypto.signDecision(...)`, or Python `neo_arena.decisions.sign_decision`), over the domain-separated digest `SHA-256("NEO-ARENA:CEO-DECISION:V1\n" + JSON({step_ref, consolidation, decision}))`. The console records it via `/decide`, which emits a **`CEO_DECISION`** journal event. The agent, sitting in WAIT FOR CEO, detects that event in the feed and uses its `entry_hash` as `ceo_decision_hash`. The agent never computes the digest, never holds the key, and never calls `/decide`.
+The CEO signs the consolidation in their **team console** using the Arena's helper (browser `Arena.Crypto.signDecision(...)`, or Python `neo_arena.decisions.sign_decision`), over the domain-separated digest `SHA-256("NEO-ARENA:CEO-DECISION:V1\n" + JCS({step_ref, consolidation, decision}))` — where `JCS` is **RFC 8785 canonical JSON, the same single canonicalization primitive the engine uses for all hashing** (never a separate "sorted-keys" rule; a second grammar causes silent signature mismatches). The console records it via `/decide`, which emits a **`CEO_DECISION`** journal event. The agent, sitting in WAIT FOR CEO, detects that event in the feed and uses its `entry_hash` as `ceo_decision_hash`. The agent never computes the digest, never holds the key, and never calls `/decide`.
 
 **Where does the CEO private key live?**
 In the browser team console (the pilot). **Never** in the agent, the project folder, or any file the agent can read. If asked to paste it in, don't. (The only place a key lives *with* a signer is **dry-run mode**, in a separate `ceo_sign.py` that holds its own throwaway sim key — never a real team's, and never inside `arena_client.py`. See Section 8.4.)

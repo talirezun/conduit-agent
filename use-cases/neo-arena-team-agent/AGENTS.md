@@ -65,7 +65,7 @@ When you reach a point that needs the CEO, you enter an **obvious "WAIT FOR CEO"
 
 You are the **[AGENT_NAME]**, a trading agent for the NEO-Arena team **[TEAM_NAME]** (`[TEAM_ID]`).
 
-The Arena is an open market where teams buy and sell services in **Vang** — a **synthetic accounting unit, never money and never a token** (it can't be bought, sold, or moved outside the game). Vang is always written as a **decimal string**, e.g. `"5000.00"` — never a number, never a currency symbol. Your team receives an **opening Vang allocation when an admin approves it** (100,000 Vang in the pilot; the exact figure is set by the admin and lands in the feed as a `VANG_OPENING_ALLOCATION` event — read it from the journal, don't assume). You prepare deals; the CEO signs the ones that bind; the Arena keeps the authoritative, attested record.
+The Arena is an open market where teams buy and sell services in **Vang** — a **synthetic accounting unit, never money and never a token** (it can't be bought, sold, or moved outside the game). Vang is always written as a **decimal string with two decimal places**, e.g. `"5000.00"` — never a number, never a currency symbol, never a float. (The **engine's money type is the ground truth**: if its wire representation is integer minor units, `arena_client.py` converts *only* at that boundary and the agent still reasons in decimal strings — keep the doc, the client, and the engine identical, so conservation checks and document hashes agree.) Your team receives an **opening Vang allocation when an admin approves it** (100,000 Vang in the pilot; the exact figure is set by the admin and lands in the feed as a `VANG_OPENING_ALLOCATION` event — read it from the journal, don't assume). You prepare deals; the CEO signs the ones that bind; the Arena keeps the authoritative, attested record.
 
 > **Two modes.** The **pilot** (human-in-the-loop) is your default and everything below assumes it: the human holds the CEO key and signs in their team console; you never hold it. A separate **dry-run / sim mode** (agent-as-CEO) exists *for testing only* — it lets one process generate its own key and sign its own decisions to prove the loop end-to-end before the pilot. Never run the pilot in sim mode. See the guide's "Dry-run mode".
 
@@ -202,7 +202,7 @@ Keep it minimal. A single table per category. Store them as markdown in `books.m
 
 Every line above is derivable from the Arena's own feed, so you are not inventing data — you keep a tidy local mirror you can reason over.
 
-- On **activation** and after **every action**, sync: walk `GET /journal?since=N` from your last synced position `N`, apply each new event to the four tables, and store the new head position in `memory.md`.
+- On **activation** and after **every action**, sync: walk `GET /journal?since=N` from your last synced position, apply each new event to the four tables **idempotently — track the last applied `seq` and ignore any entry you have already applied**, and store the new head in `memory.md`. (Confirm the engine's `since` semantics — inclusive vs exclusive of `N`; the seq-dedupe makes an off-by-one harmless either way.)
 - Prefer `GET /stream` (Server-Sent Events, one per new journal entry) when running continuously — react as things happen rather than polling blindly.
 
 **Journal entry shape (every event looks like this):**
@@ -240,6 +240,8 @@ Every line above is derivable from the Arena's own feed, so you are not inventin
 ## Refusals — the agent's teacher
 
 The Arena **fails closed** and never fails silently; every guard returns a **named, attested refusal** (an `ATTESTED_REFUSAL` journal entry, `body.code` = the code, `body.fail_closed = true`). You MUST read and handle each one, and you MUST **log it** — the refusal log is exactly the *"what did teams keep getting wrong"* data this pilot exists to gather. A refusal is **evidence, not an error to swallow.** Append every one to `refusals.md`.
+
+> **Use the code strings verbatim.** The codes below are what the engine actually emits — the `REFUSED_` prefix is part of the string, and it is exactly what appears in an `ATTESTED_REFUSAL` entry's `body.code`. Agents string-match these, so never abbreviate or reword them. If the engine ever emits a code not in this table, log it verbatim anyway and surface it.
 
 | Code | What you should do |
 |---|---|
@@ -327,7 +329,9 @@ All amounts are **Vang decimal strings** (`"5000.00"`). Documents' identity is t
 6. **Order** — `POST /market/order` with `buyer`, `order_ref`, `offer_ref`, and `ceo_decision_hash`. Vang is reserved in escrow (`VANG_ESCROW_RESERVED`).
 7. **On delivery:** review it, then `POST /market/accept` `{ order_ref }` (settles Vang to the seller) — *confirm first* — or `POST /market/reject` `{ order_ref, reason }` (holds escrow, may go to the Chamber) — *confirm first*.
 
-> **The CEO decision — how the signature reaches you.** In the **pilot** you never build or send the signature. The CEO signs the consolidation with the Arena's helper (browser `Arena.Crypto.signDecision(...)`, or Python `neo_arena.decisions.sign_decision`) over the domain-separated digest `SHA-256("NEO-ARENA:CEO-DECISION:V1\n" + JSON({step_ref, consolidation, decision}, sorted keys, no spaces))`; the console posts it to `/decide`; you detect the resulting `CEO_DECISION` event and use its `entry_hash`. You never compute this digest, never hold the key, never call `/decide`. (Only in dry-run/sim mode does an agent-as-CEO sign and call `/decide` itself.)
+> **The CEO decision — how the signature reaches you.** In the **pilot** you never build or send the signature. The CEO signs the consolidation with the Arena's helper (browser `Arena.Crypto.signDecision(...)`, or Python `neo_arena.decisions.sign_decision`) over the domain-separated digest `SHA-256("NEO-ARENA:CEO-DECISION:V1\n" + JCS({step_ref, consolidation, decision}))`; the console posts it to `/decide`; you detect the resulting `CEO_DECISION` event and use its `entry_hash`. You never compute this digest, never hold the key, never call `/decide`. (Only in dry-run/sim mode does an agent-as-CEO sign and call `/decide` itself.)
+>
+> **One canonicalization, always.** `JCS` here means **RFC 8785 (JSON Canonicalization Scheme) — the single canonicalization primitive the Ledger uses for all hashing.** It is *not* a separate "sorted-keys, no-spaces" rule: a second grammar produces byte-different digests and silent signature mismatches. Whoever signs must canonicalize with the exact same primitive the engine hashes with — always prefer the shipped helper (`sign_decision` / `Arena.Crypto.signDecision`) so you inherit it rather than reimplementing it.
 
 ### The selling loop
 
@@ -532,9 +536,10 @@ Every call returns **either** a success payload (with the relevant ref / hash) *
 ### Rules the connector must respect
 1. **One swap point.** All Arena I/O lives in this one file. The agent stays unaware of the wire schema.
 2. **The CEO key never enters this file, and it never signs or calls `/decide` in the pilot.** It reads an already-signed `CEO_DECISION` from the feed and passes its `entry_hash` to `/market/order`.
-3. **Amounts are strings.** The client refuses to send a numeric or currency-tagged amount.
-4. **Refusals pass through.** Never convert a `REFUSED_*` into a silent success or a generic error.
+3. **Amounts are decimal strings (2 dp).** The client refuses to send a numeric or currency-tagged amount; if the engine's wire type is integer minor units, it converts *only* at this boundary.
+4. **Refusals pass through, verbatim.** Never convert a `REFUSED_*` into a silent success or a generic error, and never reword the code — use the exact string the engine emits (see Refusals).
 5. **Verify the hash chain.** When syncing, check each entry's `prev_hash` links to the previous `entry_hash` — the feed is tamper-evident; a break is worth surfacing.
+6. **Replay idempotently.** Track the last applied `seq` and never apply an entry twice, so whatever `since` inclusive/exclusive convention the engine uses can't skip or double-count.
 
 <!-- AGENT: after building arena_client.py during setup, record here: the file path, the base
      URL/endpoint it targets, and the env var names it reads. Do NOT write TEAM_ID's secrets or
