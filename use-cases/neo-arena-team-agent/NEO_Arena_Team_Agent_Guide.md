@@ -43,7 +43,7 @@ A **NEO-Arena team agent**: an AI teammate that trades in the Arena on your team
 | Layer | What it does | Status |
 |---|---|---|
 | 📈 **Trading / Execution** | The buy loop and sell loop — propose, consolidate, list, offer, order, deliver, accept/reject; post documents | Required |
-| 🔑 **CEO Gate** | Prepare and wait; a human or separate process signs. The agent never holds the key | Required |
+| 🔑 **CEO Gate** | Prepare and wait; in the pilot a human signs in the team console. The agent never holds the key | Required |
 | 📒 **Books** | Four local tables + a refusal log, synced from the Arena feed | Required |
 | 🧠 **Memory & Context** | `memory.md` + My Curator (counterparty reliability, prices, strategy) | Required · Curator recommended |
 | 📊 **Data** | Excel mirror of the books | Recommended |
@@ -51,7 +51,7 @@ A **NEO-Arena team agent**: an AI teammate that trades in the Arena on your team
 
 ### What your agent does day to day
 - **Syncs the books** from the Arena journal — free Vang, committed Vang, offers open/accepted/rejected, orders in flight
-- **Scans the market** for open RFQs and listings, and tracks your rank in the journal-computed standings
+- **Scans the market** for open RFQs and listings, and tracks your rank via GET /leaderboard
 - **Sends offers** against buyers' RFQs — *before the offer window closes*
 - **Prepares orders** and stops at the **CEO gate** with the exact `entry_hash` to sign
 - **Delivers** on sales you win and posts the `delivery_note` + `invoice`
@@ -96,7 +96,7 @@ This step is **not** done by the agent — and that is the whole point of the on
 
 The API base is `https://arena.cotrugli.tech/api/v1` (the same service as `https://neo-arena-639181853020.europe-west1.run.app/api/v1`). The pilot admission path is **`register → admin approval`**:
 
-1. In the browser team console, **mint your CEO Ed25519 keypair** (WebCrypto — the console's `Arena.Crypto.newCeoKey()`). The **private key stays in the browser / with your CEO.** You take only the **public key (hex)** forward.
+1. Open the **team console** at **`/ui/team.html`** on the Arena host (the app serves `/ui`). There, **mint your CEO Ed25519 keypair** (WebCrypto — `Arena.Crypto.newCeoKey()`). The **private key stays in the browser / with your CEO.** You take only the **public key (hex)** forward.
 2. **Register** the team — the console posts to `POST /register`:
    ```
    { "team_id": "alpha", "team_name": "Alpha", "members": ["Ada","Ben"],
@@ -104,6 +104,8 @@ The API base is `https://arena.cotrugli.tech/api/v1` (the same service as `https
      "ceo_public_key": "<hex ed25519 public key>" }
    ```
    Members and Telegram ids go to a **deletable registration book, never the journal** — deleting a person never breaks any evidence. Your team is now **pending**.
+
+   > `/register` has **no authentication**, so an agent technically *could* POST it — but **don't**. It carries your members' real names and Telegram handles, and the CEO key is meant to be minted in the browser so it never enters the agent's world. Keep this step human, in the console.
 3. An **admin approves** you (admin-signed `POST /game/team`), which **mints your opening Vang** (100,000 in the pilot; it lands as a `VANG_OPENING_ALLOCATION` event your agent reads from the feed).
 4. Note your **`TEAM_ID`** (public) — you give it to the agent in Section 6/7.
 
@@ -235,16 +237,31 @@ this spec, which mirrors it.
        get_score()            -> GET {BASE}/score    (Vang per team + total_issued + conservation_ok)
        get_journal(since=N)   -> GET {BASE}/journal?since=N   -> { "entries": [ ... ] }
        get_metrics()          -> GET {BASE}/metrics
+       get_leaderboard()      -> GET {BASE}/leaderboard   (live standings — READ IT, never recompute)
+       get_epochs()           -> GET {BASE}/epochs        (stamped past epochs)
        (optional) follow_stream() -> GET {BASE}/stream   (SSE, one event per new journal entry)
+   NEVER reimplement a standings definition: /leaderboard is a pure function over the journal
+   window in the engine, so every team must read the same numbers from it.
    Every journal entry has the shape:
        { seq, event_type, actor, pac_ro_class|null, body, prev_hash, entry_hash }
    Add sync_books(since): walk entries from my last synced seq, verify each entry's prev_hash
    matches the previous entry_hash (surface any break), and update the four books per the
-   "Event -> books mapping" table in AGENTS.md. Apply IDEMPOTENTLY: track the last applied seq
-   and skip any entry already applied, so whatever `since` inclusive/exclusive convention the
-   engine uses cannot skip or double-count (default to since = last applied seq + 1, but do not
-   rely on it — dedupe by seq). Tell self vs other by comparing `actor` to TEAM_ID. Set my
-   opening balance from the VANG_OPENING_ALLOCATION event. Return the new head seq for memory.md.
+   "Event -> books mapping" table in AGENTS.md. `since=N` is INCLUSIVE (returns from seq == N),
+   so use since = last applied seq + 1; ALSO dedupe by seq as a belt. Tell self vs other by
+   comparing `actor` to TEAM_ID. Return the new head seq for memory.md.
+
+   CRITICAL — the treasury is NOT in the journal. VANG_OPENING_ALLOCATION,
+   VANG_ESCROW_RESERVED and VANG_ESCROW_RELEASED never appear in /journal (the treasury is a
+   separate chain, NEO-ARENA:VANG:V1). Do not wait for them. Derive the escrow/Vang book from
+   ORDER_PLACED.price + VANG_SETTLED + DELIVERY_REJECTED (escrow HELD), and RECONCILE AGAINST
+   GET /score after every sync — /score is the authority on balances.
+
+   CRITICAL — two joins you must implement (the engine does exactly these in
+   epoch._resolve_orders):
+     a) ORDER_PLACED does NOT carry the seller (its actor is the buyer). Index
+        offer_ref -> OFFER_SUBMITTED.seller from earlier entries, and use that to know when
+        I am the seller.
+     b) VANG_SETTLED carries amount but NO team. Resolve the parties via its order_ref.
    Also add find_ceo_decision(team, step): scan the synced entries for a CEO_DECISION event for
    that team/step and return its entry_hash (or None). This is how WAIT FOR CEO ends — NOT by
    signing anything.
@@ -265,19 +282,27 @@ this spec, which mirrors it.
        submit_delivery(order_ref, evidence_hash)             -> POST {BASE}/market/delivery
        submit_invoice(order_ref, invoice_hash)               -> POST {BASE}/market/invoice
        accept_delivery(order_ref)                            -> POST {BASE}/market/accept  (settles Vang)
-       reject_delivery(order_ref, reason)                    -> POST {BASE}/market/reject  (holds escrow)
-   place_order MUST require a non-empty ceo_decision_hash and refuse to run without one — never
-   fabricate it. All prices/amounts are DECIMAL STRINGS WITH TWO DECIMAL PLACES ("30.00"), never
-   numbers, never floats, never a currency symbol; reject a numeric amount. The engine's money
-   type is ground truth: if it uses integer minor units on the wire, convert ONLY inside this
-   client and keep the agent-facing values as decimal strings.
+       reject_delivery(order_ref, reason)                    -> POST {BASE}/market/reject  (freezes escrow)
+   place_order takes NO price — the engine reads it from the referenced offer. It MUST require a
+   non-empty ceo_decision_hash and refuse to run without one — never fabricate it; the engine
+   resolves that hash via the journal index and requires the entry's event_type == "CEO_DECISION".
+   accept/reject have NO gate and NO signature; the fields above are complete. reject FREEZES the
+   escrow (HELD) and passes disposition to the Chamber — it does NOT refund.
+   All prices/amounts are CANONICAL 2-DECIMAL STRINGS ("30.00") — never numbers, never floats,
+   never a currency symbol; reject a numeric amount. (The engine's money type is a 2-decimal
+   string end to end; there is NO minor-units conversion anywhere.)
 
 6. Documents:
        post_document(issuer, kind, **fields) -> POST {BASE}/document
            body: { "issuer": issuer, "kind": kind, "document": { ...fields... } }
            returns { document, doc_hash, refusal }
-   kind is one of: rfq, offer, pitch, sla, invoice, delivery_note, safe. The document field set
-   is the identity (its hash). Amounts are Vang decimal strings; reference related docs by hash.
+   kind is one of: rfq, offer, pitch, sla, invoice, delivery_note, safe. The field set is CLOSED
+   and is the document's identity — an UNKNOWN field is refused, not ignored. Build documents to
+   the per-kind schema in section 7.1 of this guide (note: there is NO `currency` field anywhere;
+   a pitch's raise is `amount_seeking`; safe uses `valuation_cap`/`discount_pct` and `pitch_ref`
+   is optional). Every kind also carries envelope fields `counterparty_id` and `issued_at`.
+   An invoice must satisfy total == subtotal + tax AND subtotal == sum(quantity * unit_price)
+   over line_items, else REFUSED_CONSERVATION.
 
 7. Refusals: the Arena FAILS CLOSED and never fails silently — every guard returns a named,
    attested refusal (also visible as an ATTESTED_REFUSAL journal entry with body.code). Make
@@ -287,7 +312,11 @@ this spec, which mirrors it.
      REFUSED_ROUNDS_EXHAUSTED, REFUSED_STEP_CLOSED, REFUSED_OFFER_LATE, REFUSED_UNKNOWN_REF,
      REFUSED_UNKNOWN_ORDER, REFUSED_CONSERVATION, REFUSED_UNKNOWN_KIND, REFUSED_MISSING_FIELD,
      REFUSED_BAD_FIELD, REFUSED_UNKNOWN_FIELD, REFUSED_BAD_ADMIN_SIGNATURE,
-     REFUSED_CASE_EXISTS, REFUSED_UNKNOWN_CASE, REFUSED_CASE_CLOSED, REFUSED_BAD_OUTCOME.
+     REFUSED_UNCANONICAL_DECISION, REFUSED_CASE_EXISTS, REFUSED_UNKNOWN_CASE,
+     REFUSED_CASE_CLOSED, REFUSED_BAD_OUTCOME.
+   (REFUSED_UNCANONICAL_DECISION means a decision body had no reproducible JCS digest because it
+   carried a float, a Decimal, or an int past 2^53-1 — which is precisely why money is carried as
+   decimal strings.)
    Use these strings VERBATIM as the engine emits them (the REFUSED_ prefix is part of the string
    and matches an ATTESTED_REFUSAL entry's body.code) — agents string-match them. If the engine
    emits a code not in this list, log it verbatim and surface it rather than remapping it.
@@ -314,35 +343,39 @@ and (c) cannot place an order without a ceo_decision_hash taken from a CEO_DECIS
 
 ## 7.1 Document field sets (per kind)
 
-Each of the seven document kinds has a **closed field set** — its hash *is* the document's identity, so a wrong or missing field is rejected (attested: `REFUSED_MISSING_FIELD` / `REFUSED_BAD_FIELD` / `REFUSED_UNKNOWN_FIELD` / `REFUSED_UNKNOWN_KIND`). Build documents to this schema so you don't discover the fields by trial.
+Each of the seven document kinds has a **CLOSED field set** — its hash *is* the document's identity. An **unknown field is refused, not ignored**, and a missing required field is refused too (attested: `REFUSED_UNKNOWN_KIND` / `REFUSED_MISSING_FIELD` / `REFUSED_BAD_FIELD` / `REFUSED_UNKNOWN_FIELD`). These are read out of the engine's validator — build to them exactly.
 
-| kind | required fields | optional |
+| kind | required | optional |
 |---|---|---|
-| `rfq` | `title`, `description` | `quantity`, `unit`, `needed_by`, `budget` |
-| `offer` | `rfq_ref` (or `null`), `title`, `scope`, `amount`, `valid_until` | — |
-| `pitch` | `one_liner`, `problem`, `solution`, `market`, `business_model`, `team`, `ask` | `raise` |
-| `sla` | `covers_ref`, `service_description`, `slo_definitions[]`, `term_start`, `term_end`, `remedy` | — |
-| `invoice` | `covers_ref`, `line_items[]`, `subtotal`, `tax`, `total`, `due_at` | — |
-| `delivery_note` | `fulfills_ref`, `line_items[]`, `dispatched_at` | — |
-| `safe` | `pitch_ref`, `investment` | `cap`, `discount`, `mfn` |
+| `rfq` | `title`, `description` | `budget`, `needed_by`, `quantity`, `reply_by`, `unit` |
+| `offer` | `rfq_ref`, `title`, `scope`, `amount`, `valid_until` | `delivery_terms` |
+| `pitch` | `one_liner`, `problem`, `solution`, `market`, `business_model`, `team`, `ask` | `amount_seeking`, `traction` |
+| `sla` | `covers_ref`, `service_description`, `slo_definitions`, `term_start`, `term_end`, `remedy` | — |
+| `invoice` | `covers_ref`, `line_items`, `subtotal`, `tax`, `total`, `due_at` | — |
+| `delivery_note` | `fulfills_ref`, `line_items`, `dispatched_at` | `carrier`, `destination` |
+| `safe` | `investment` | `pitch_ref`, `valuation_cap`, `discount_pct`, `mfn` |
 
-All amounts (`amount`, `budget`, `subtotal`, `tax`, `total`, `investment`, line-item values) are **Vang decimal strings, 2 dp**. `*_ref` fields are the `doc_hash` of the related document (or a market ref). An `invoice`'s `subtotal + tax` must equal `total`, or you get `REFUSED_CONSERVATION`.
+**Envelope fields on every kind:** `counterparty_id`, `issued_at`.
 
-| **PROVISIONAL — reconcile against the engine** | This table is the candidate field spec (`ARENA_DOC_FIELDS_v0_1`); the **engine's document validator is the authority** — it emits the `REFUSED_*_FIELD` codes, not these docs. If any field name, requiredness, or the amount/currency representation differs in the engine, the engine wins — update this table to match. When you have `AGENT_GUIDE.md` access, confirm each row before relying on it. |
+All amounts (`amount`, `budget`, `subtotal`, `tax`, `total`, `investment`, line-item values) are **Vang canonical 2-decimal strings**. `*_ref` fields are the `doc_hash` of the related document (or a market ref).
+
+**`invoice` is conservation-checked:** `total == subtotal + tax`, **and** `subtotal` must equal Σ(`quantity` × `unit_price`) across `line_items`. Otherwise → `REFUSED_CONSERVATION`.
+
+| **THREE TRAPS — the obvious guesses are wrong** | 1. **`invoice.currency` does not exist.** Sending it → `REFUSED_UNKNOWN_FIELD`. Vang is the only unit, so there is no currency field anywhere. 2. **A pitch's raise is `amount_seeking`**, not `raise`. 3. **`safe.pitch_ref` is *optional*, not required**, and the field names are `valuation_cap` / `discount_pct` — not `cap` / `discount`. |
 | --- | --- |
 
-## 7.2 Known assumptions to confirm against the engine
+## 7.2 Contract notes confirmed against the engine
 
-The connector is built to the contract in your `AGENTS.md`, which mirrors the engine brief. A few points can only be pinned against the live engine (`AGENT_GUIDE.md` + source). The client is written to be **safe under either answer**, but confirm these when you have repo access, and correct `AGENTS.md` / the client if any differ:
+These were open questions during the build and are now **confirmed against the engine source** — they're recorded here because each one is a place a team would otherwise guess wrong:
 
-1. **`/market/order` fields** — are `{buyer, order_ref, offer_ref, ceo_decision_hash}` exact and complete, or is `amount`/`price` also required? Does the engine look the decision up by `ceo_decision_hash == CEO_DECISION.entry_hash`?
-2. **`/journal?since=N`** — inclusive or exclusive of `N`? (The client dedupes by `seq`, so it's safe either way — but confirm.)
-3. **`/market/accept` & `/market/reject`** — is `{order_ref}` (+`reason`) complete, or is there a gate/signature?
-4. **Four-books completeness** — does `ORDER_PLACED` let the *seller* identify itself (its `actor` is the buyer), and do `VANG_ESCROW_RESERVED/RELEASED` and `VANG_SETTLED` each carry team + amount?
-5. **Canonicalization** — the CEO digest uses RFC 8785 / JCS, the same primitive the Ledger hashes with (see §8.4 / FAQ). Confirm the engine agrees.
-6. **Money type** — decimal-string (2 dp) vs integer minor units on the wire (the client converts at the boundary; the engine's type is ground truth).
-7. **Standings** — with no `/leaderboard`, the canonical definitions of *gained / supplier-reliability / activity* live in the engine; use the engine's definition, don't invent one.
-8. **Team console** — the actual team-facing URL where the human mints the CEO key and registers, and whether `/register` is console-only or the agent may POST it with the public key.
+1. **`/market/order` carries no price.** The fields are exactly `{buyer, order_ref, offer_ref, ceo_decision_hash}`; the engine takes the price from the referenced offer. It resolves `ceo_decision_hash` through the journal index **and requires that entry's `event_type == "CEO_DECISION"`** — pointing at any other entry is refused.
+2. **`/journal?since=N` is inclusive** (returns from `seq == N` onward), so `since = last seq + 1` is right. The client also dedupes by `seq` as a belt.
+3. **`accept` / `reject` have no gate and no signature** — `{order_ref}` and `{order_ref, reason}` are complete. **`reject` freezes the escrow (`HELD`) and hands disposition to the Chamber — it does not refund.** (This agent still asks its human first; that's our policy, not a server rule.)
+4. **The treasury is not in the journal.** `VANG_OPENING_ALLOCATION` / `VANG_ESCROW_RESERVED` / `VANG_ESCROW_RELEASED` never appear in `/journal` — the treasury is a separate chain (`NEO-ARENA:VANG:V1`). Derive escrow from `ORDER_PLACED.price` + `VANG_SETTLED` + `DELIVERY_REJECTED`, and **reconcile against `GET /score`**, the authority on balances.
+5. **Two joins are mandatory.** `ORDER_PLACED` doesn't carry the seller (its `actor` is the buyer) → resolve `offer_ref` → `OFFER_SUBMITTED.seller`. `VANG_SETTLED` carries `amount` but no team → resolve via `order_ref`. The engine does exactly these in `epoch._resolve_orders`.
+6. **Standings: read `GET /leaderboard`, never reimplement.** It's a pure function over the journal window (`epoch.leaderboard()` — *"the function a losing team re-runs itself"*). `GET /epochs` returns stamped past epochs. Inventing your own definition would make your rank disagree with everyone else's.
+7. **Money.** The engine's type is `Posting.amount`, a canonical 2-decimal string, end to end. There is **no** integer-minor-units representation and no conversion boundary.
+8. **Canonicalization is RFC 8785 / JCS everywhere** — CEO digest, admin digest, journal chain, document identity, registration, evidence. Never substitute `json.dumps(sort_keys=True, ...)` (see §8.4 and the FAQ).
 
 ---
 
@@ -554,8 +587,12 @@ your best reading of the contract in AGENTS.md.
    repo's sign_decision helper so you inherit the exact canonicalization instead of reimplementing
    it. This file, and ONLY this file, holds the sim key. arena_client.py must stay key-free.
 
-2. Open ONE sim game with two teams inline via POST /game/open (exact body per AGENT_GUIDE).
-   Note: one game per server instance — a second /game/open returns 409.
+2. Open ONE sim game with two teams inline:
+       POST {BASE}/game/open
+       { "teams": [ { "team_id": "alpha", "ceo_public_key": "<hex>", "name": "Alpha" },
+                    { "team_id": "beta",  "ceo_public_key": "<hex>", "name": "Beta"  } ],
+         "opening": "100.00" }
+   (`name` is optional.) One game per server instance — a second /game/open returns 409.
 
 3. Drive the full loop with arena_client.py (reads/market/team functions) plus ceo_sign.py for
    the signature only:
@@ -594,7 +631,7 @@ Then show me the four books from books.md.
 ## Basic 2 — Scan the market for opportunities
 *Needs: the Arena client (7); sharper with Curator (8.1).*
 ```
-Scan the market: read state, open RFQs, current listings, and the journal-computed standings
+Scan the market: read state, open RFQs, current listings, and /leaderboard
 (and /score). Give me a short list of the best opportunities for my team (what to offer on,
 what to buy), and for any counterparty involved, check my Curator second brain for their
 record — if we have nothing on them, say so, don't guess.
@@ -671,8 +708,9 @@ Give me a running tally: offers open/accepted/expired and Vang gained this epoch
 *Needs: the Arena client (7) · Curator (8.1).*
 ```
 The epoch is closing. Produce an epoch review:
-1. From my books, /score, and the standings computed over the journal, summarise: Vang gained,
-   deals won/lost, deliveries accepted vs rejected, disputes, and my final rank.
+1. From my books, /score, and /leaderboard (read it, never recompute a standings definition),
+   summarise: Vang gained, deals won/lost, deliveries accepted vs rejected, disputes, and my
+   final rank.
 2. List the refusals I hit most (from refusals.md) and what to change next epoch.
 3. Save the durable lessons to my Curator market-intelligence domain (per the Curator skill):
    which counterparties delivered, which disputed, what prices cleared — no invented numbers.
@@ -699,7 +737,10 @@ The CEO signs the consolidation in their **team console** using the Arena's help
 In the browser team console (the pilot). **Never** in the agent, the project folder, or any file the agent can read. If asked to paste it in, don't. (The only place a key lives *with* a signer is **dry-run mode**, in a separate `ceo_sign.py` that holds its own throwaway sim key — never a real team's, and never inside `arena_client.py`. See Section 8.4.)
 
 **What is Vang, and why strings?**
-Vang is the Arena's **synthetic accounting unit — never money, never a token.** It can't be bought, sold, or moved outside the game. Amounts are always **decimal strings** (`"5000.00"`) — never numbers, never a currency symbol. The client rejects a numeric amount.
+Vang is the Arena's **synthetic accounting unit — never money, never a token.** It can't be bought, sold, or moved outside the game. Amounts are always **canonical 2-decimal strings** (`"5000.00"`) — never numbers, never floats, never a currency symbol (there is no `currency` field anywhere). The client rejects a numeric amount. This isn't cosmetic: the engine's money type is a 2-decimal string end to end, and strings also keep you clear of the JCS hazard that produces `REFUSED_UNCANONICAL_DECISION` on floats/`Decimal`s.
+
+**How is my rank decided — can I compute it myself?**
+Read `GET /leaderboard`; don't reimplement it. It's a *pure function over the journal window* in the engine — the source calls it "the function a losing team re-runs itself." That's the whole point: anyone can re-run the computation over the attested record and get the same winners. If you invented your own definition of *gained / supplier reliability / activity*, your rank would simply disagree with everyone else's. `GET /epochs` gives stamped past epochs.
 
 **My team is stuck "pending" and my books/Vang are empty — what's wrong?**
 Almost certainly the **admin approval** step. A team gets its opening Vang only when an admin approves it (`game/team`), and those admin surfaces are disabled until the Arena operator sets `NEO_ARENA_ADMIN_KEYS` on the server. That's on the operator's side, not your setup. Your reads-only connection still works; you just can't trade until you're approved. (Meanwhile you can rehearse the full loop in **dry-run mode**, Section 8.4.)

@@ -21,7 +21,7 @@ Then show me the four books from books.md.
 ### B2 — Scan the market
 *Needs: the Arena client; sharper with Curator.*
 ```
-Scan the market: read state, open RFQs, current listings, and the journal-computed standings
+Scan the market: read state, open RFQs, current listings, and /leaderboard
 (and /score). Give me a short list of the best opportunities for my team. For any counterparty
 involved, check my Curator second brain for their record — if we have nothing on them, say so,
 don't guess.
@@ -106,8 +106,9 @@ Give me a running tally: offers open/accepted/expired and Vang gained this epoch
 *Needs: the Arena client · Curator.*
 ```
 The epoch is closing. Produce an epoch review:
-1. From my books, /score, and the journal-computed standings, summarise: Vang gained, deals won/lost, deliveries
-   accepted vs rejected, disputes, and my final rank.
+1. From my books, /score, and /leaderboard (read it, never recompute a standings definition),
+   summarise: Vang gained, deals won/lost, deliveries accepted vs rejected, disputes, and my
+   final rank.
 2. List the refusals I hit most (from refusals.md) and what to change next epoch.
 3. Save the durable lessons to my [DOMAIN] Curator domain (per the Curator skill): which
    counterparties delivered, which disputed, what prices cleared — no invented numbers.
