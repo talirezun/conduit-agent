@@ -4,6 +4,9 @@
 # Claude Code local session/config
 .claude/
 
+# Local-only project guide for Claude — never publish to the open-source repo
+CLAUDE.md
+
 # Secrets — never commit these
 .env
 *.local
