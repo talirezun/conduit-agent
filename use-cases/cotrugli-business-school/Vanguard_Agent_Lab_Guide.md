@@ -4,14 +4,16 @@ Complete Setup and Operations Guide
 
 COTRUGLI Business School  |  Vanguard MBA  |  Chasing Jarvis
 
-Dr. Tali Rezun  |  Version 3.4  |  July 2026
+Dr. Tali Rezun  |  Version 3.5  |  September 2026
 
 |  |  |
 | --- | --- |
 | **Track A** | opencode — free, recommended for demonstrations and students without a Claude subscription |
 | **Track B** | Claude Desktop with **Claude Cowork** (or Claude Code) — for students with Claude Pro ($20/month) |
 
-> **What changed in v3.4 — read this first.** The Cotrugli Ledger now needs **only one value from your instructor: your personal API key.** The ledger address (`https://agents.cotrugli.tech`) is built into the docs as the default, so you no longer supply a base URL. Also new: opencode MCPs are installed **project-scoped** (in this agent's `opencode.jsonc`, not the global opencode config) so each agent keeps its own tools — see Section 2.1.
+> **What changed in v3.5 — read this first.** The Curator (Section 6) caught up with the current app. On a Mac you can now install the **Mac app** (a download you approve once in System Settings); everyone else installs the **browser app** by prompt. Connecting it is a three-step flow — get the app, do the in-app first run (AI key + first domain), then one prompt connects the MCP **and** downloads The Curator's two official skills (`my-curator` and `curator-continuity`). The old Conduit copy of the skill is retired, and the MCP now works even when the Curator app is closed.
+>
+> **What changed in v3.4.** The Cotrugli Ledger now needs **only one value from your instructor: your personal API key.** The ledger address (`https://agents.cotrugli.tech`) is built into the docs as the default, so you no longer supply a base URL. Also new: opencode MCPs are installed **project-scoped** (in this agent's `opencode.jsonc`, not the global opencode config) so each agent keeps its own tools — see Section 2.1.
 >
 > **What changed in v3.3.** The Cotrugli Ledger connection dropped from three values to two: the API key is bound to your tenant server-side, so the tenant is derived from the key — there is **no `LEDGER_TENANT_ID`** and you must **not** send an `X-Tenant` header (a mismatched one is rejected with HTTP 403). Reads (proof-bundle) authenticate with `X-API-Key`, and `Authorization: Bearer <key>` is accepted anywhere `X-API-Key` is. See Section 8.
 >
@@ -153,7 +155,7 @@ The same MCP in both formats, side by side (Excel example):
 }
 ```
 
-| **RULE OF THUMB** | Almost every install snippet you find online (including in tool READMEs and in the Curator app's "Copy snippet" button) is written in **Claude's `mcpServers` format**. If you are on opencode, that snippet must be **translated** into the `mcp` format above before it will work. The Track A prompts in Section 6 already do this translation for you — but if you ever install something new, tell your opencode agent: *"translate this into opencode's `mcp` format and put it in opencode.jsonc."* |
+| **RULE OF THUMB** | Almost every install snippet you find online (including in tool READMEs and the snippet in The Curator's **Settings → MCP bridge**) is written in **Claude's `mcpServers` format**. If you are on opencode, that snippet must be **translated** into the `mcp` format above before it will work. The Track A prompts in Section 6 already do this translation for you — but if you ever install something new, tell your opencode agent: *"translate this into opencode's `mcp` format and put it in opencode.jsonc."* |
 | --- | --- |
 
 | **PROJECT-SCOPED, NOT GLOBAL (opencode)** | opencode can register an MCP in **two** places: a **global** config (`~/.config/opencode/opencode.json`, which loads that MCP into *every* opencode project on your machine) or a **project** config (`opencode.jsonc` inside this agent's folder, which loads it *only here*). **This lab always uses the project file.** That way each agent owns its own tools — your Personal Agent and your Company Agent don't share MCPs, and nothing leaks into your other opencode work. Every Track A prompt in this guide already targets the project `opencode.jsonc`; if an agent ever offers to edit the global opencode config, tell it to use the project file in this folder instead. |
@@ -432,142 +434,175 @@ Why this matters: instead of starting cold each time, your agent gains on-demand
 - Install with a coding agent: https://github.com/talirezun/the-curator/blob/main/docs/user-guide.md#20-install-with-a-coding-agent
 - GitHub sync (optional): see docs/sync.md in the repository
 
-The Curator has **many installation options**; for this lab we use the **"install with a coding agent"** option — your agent does it. It is **two steps**, and only Step 2 differs by track:
+The Curator is installed in **three steps**, and only Step 3 differs by track:
 
-- **Step 1 — Install the Curator app** (same prompt on both tracks). This clones, builds, and launches the local Curator app so you can create your first domain. It does **not** connect the agent yet.
-- **Step 2 — Connect the Curator to your agent** (Track A and Track B prompts below). This registers the **my-curator MCP** so your agent can query the wiki, and installs the Curator **usage skill** so it uses those tools well.
+- **Step 1 — Get the app** (both tracks). Two options: the **Mac app** (a download you do yourself — macOS only, no Node.js needed) or the **browser app** (your agent installs it — Windows, Linux, or Mac). Both are the same program; pick one.
+- **Step 2 — First run, in the app** (you do this). The Curator's *Getting started* panel walks you through adding an AI key, creating your first domain, and ingesting your first document. Your agent never sees your key.
+- **Step 3 — Connect the Curator to your agent** (Track A and Track B prompts below). This registers the **my-curator MCP** so your agent can query the wiki, and installs The Curator's two official **skills** so it uses those tools well.
 
-### **Step 1 — Install the Curator app (both tracks)**
-
-**INSTALL THE CURATOR APP — copy and paste this into your agent:**
-
-```
-Please install "The Curator" app on this machine for me.
-Project: https://github.com/talirezun/the-curator
-User Guide: https://github.com/talirezun/the-curator/blob/main/docs/user-guide.md
-Steps:
-1. Verify Node.js 18+ is installed; if not, install it (Homebrew on macOS,
-   nodejs.org installer on Windows, system package manager on Linux).
-2. git clone https://github.com/talirezun/the-curator.git into my home directory.
-3. cd the-curator && npm install
-4. On macOS: bash scripts/build-app.sh to build "The Curator.app", then move/copy
-   it to /Applications and remind me to drag it from Finder into my Dock.
-5. On Linux/Windows: skip the .app build; explain how to start the server
-   (`node src/server.js`, with CURATOR_NO_OPEN=1 on Windows) and remind me to
-   open http://localhost:3333.
-6. Open the URL once the server is running so I can complete the onboarding
-   wizard (API key + first domain).
-7. Tell me what to do if I want to enable GitHub sync (point me to docs/sync.md).
-Do not edit any files outside ~/the-curator. Do not commit anything to my git config.
-Do not ask me for my API key — the in-app onboarding wizard will handle it.
-After the install finishes, summarise what you did in 5 bullet points, and add a
-note to AGENTS.md that the Curator app is installed at ~/the-curator, that it must
-be running for the second brain to work, and that the my-curator MCP will be
-connected next (Step 2). Do NOT try to register the MCP yet — that is Step 2.
-```
-
-| **TIP — set up your first domain** | The onboarding wizard asks you to create your first domain. Make one domain for your **personal** knowledge and, if relevant, a separate domain for your **company** knowledge. Ingest a few real documents early — the agent's usefulness compounds as the graph grows. Keep the Curator app **running** whenever you want your agent to use the second brain (the MCP talks to it locally). |
+| **GOOD TO KNOW** | The my-curator MCP reads your knowledge folder directly, so it **works with The Curator app closed**. You only need the app open to ingest documents, chat, or change settings. |
 | --- | --- |
 
-### **Step 2 — Connect the Curator to your agent (MCP + skill)**
+### **Step 1 — Get the app (both tracks)**
 
-Now register the second brain with your agent. The Curator MCP server is the file `~/the-curator/mcp/server.js`, launched with `node`. The Curator app also generates a ready-made snippet for you: open the app → **Settings → "My Curator" → "Copy snippet"**. **That snippet is always in Claude's `mcpServers` format** — perfect for Track B, but on Track A your agent must translate it to opencode's format (the prompt below does this).
+**Option 1 — the Mac app (recommended on a Mac).** This one you download yourself — it takes two minutes, and it is the one install your agent should not do for you, because macOS asks *you* to approve it.
 
-Alongside the MCP, the Curator ships a **usage skill** — a playbook that teaches your agent how to read, write, and maintain the wiki without creating broken links or duplicates. It matters: the MCP gives the agent the *tools*; the skill teaches it the *rules*. Install both.
+1. Open the **[Releases page](https://github.com/talirezun/the-curator/releases)** and download the `.dmg` for your Mac from the newest release: `TheCurator-<version>-arm64-AppleSilicon.dmg` for Apple Silicon (M1 and later) or `TheCurator-<version>-x64-Intel.dmg` for Intel. *(Not sure? Apple menu → About This Mac → "Chip".)*
+2. Open the `.dmg` and drag **The Curator** onto **Applications**.
+3. **First launch only:** macOS blocks it, because the app is not yet notarized by Apple. Double-click the app, dismiss the warning, then go to **System Settings → Privacy & Security**, scroll to **Security**, and click **Open Anyway**. Open the app again — macOS remembers your choice.
 
-**TRACK A — opencode. INSTALL CURATOR MCP + SKILL — copy and paste this into opencode:**
+The Mac app updates itself from then on (**The Curator → Check for Updates…**).
+
+**Option 2 — the browser app (Windows, Linux, or Mac). INSTALL THE CURATOR — copy and paste this into your agent:**
 
 ```
-The Curator app is installed and running. Connect it to THIS opencode project.
-Work only in opencode.jsonc in this project folder — never touch any Claude config
-file. Explain each step in plain language.
+Please install "The Curator" (browser app) on this machine for me, and explain
+each step in plain language as you go.
+Project:    https://github.com/talirezun/the-curator
+User Guide: https://github.com/talirezun/the-curator/blob/main/docs/user-guide.md
 
-1. Find the Curator MCP server file. It is at ~/the-curator/mcp/server.js (expand ~
-   to my real home directory to get an absolute path). If I have the app open, I can
-   also give you the snippet from Settings -> "My Curator" -> "Copy snippet" — but
-   note that snippet is in Claude's format, so you must TRANSLATE it, not paste it.
+Steps:
+1. Check that Node.js 18 or newer is installed; if not, install it (Homebrew on
+   macOS, the nodejs.org installer on Windows, the system package manager on
+   Linux). Tell me what you installed.
+2. Clone https://github.com/talirezun/the-curator.git into my home folder.
+3. In that folder, run: npm install
+4. Start the server: node src/server.js
+   (on Windows PowerShell: $env:CURATOR_NO_OPEN=1; node src\server.js)
+5. Open http://localhost:3333 in my browser so I can do the in-app first run.
+6. Tell me how to start it again next time, and point me to docs/sync.md if I
+   want GitHub sync later.
 
-2. Register the my-curator MCP in opencode.jsonc using opencode's format EXACTLY
-   (top-level "mcp", "type": "local", "command" as one array):
-       {
-         "mcp": {
-           "my-curator": {
-             "type": "local",
-             "command": ["node", "<ABSOLUTE path to ~/the-curator/mcp/server.js>"],
-             "enabled": true
-           }
-         }
+Do not edit any files outside the-curator folder. Do not ask me for an API key —
+I add it in the app myself. After install, summarise what you did in 5 bullets
+and note in AGENTS.md that The Curator (browser app) is installed at
+~/the-curator. Do NOT register the MCP yet — that is Step 3.
+```
+
+### **Step 2 — First run, in the app (you do this)**
+
+When The Curator opens for the first time, a **Getting started** panel asks what you want to set up first. Choose **Build a second brain** and follow its three steps:
+
+1. **Add an AI key** — the app uses it to turn your documents into a knowledge graph. A free **Google Gemini** key is the easiest start: [aistudio.google.com/app/apikey](https://aistudio.google.com/app/apikey). (Anthropic and OpenRouter keys also work; The Curator has no local-model option.) Paste it into the app — **never into your agent chat.**
+2. **Create your first domain** — e.g. `personal` or `company`.
+3. **Ingest your first source** — drop in a real document (a report, an article, your notes).
+
+| **TIP — what leaves your machine** | Ingesting sends the document's text to the AI provider whose key you added; the knowledge it builds lives as plain markdown files on **your** machine. Make one domain for your **personal** knowledge and, if relevant, a separate domain for your **company** knowledge. Ingest a few real documents early — the agent's usefulness compounds as the graph grows. |
+| --- | --- |
+
+### **Step 3 — Connect the Curator to your agent (MCP + skills)**
+
+Now register the second brain with your agent. How the MCP is launched depends on which install you have:
+
+- **Mac app:** the launcher `~/Library/Application Support/The Curator/bin/my-curator-mcp` (the app writes it on every launch; it takes no arguments).
+- **Browser app:** `node ~/the-curator/mcp/server.js`.
+
+The Curator can also generate a ready-made snippet for you (**Settings → MCP bridge → Copy snippet**). **That snippet is always in Claude's `mcpServers` format** — fine for Track B, but on Track A your agent must translate it to opencode's format (the prompt below does this).
+
+Alongside the MCP, The Curator ships two official **skills**: `my-curator` teaches your agent how to read, write, and maintain the wiki without creating broken links or duplicates, and `curator-continuity` teaches it how to carry work between sessions. It matters: the MCP gives the agent the *tools*; the skills teach it the *rules*. Install both.
+
+**TRACK A — opencode. INSTALL CURATOR MCP + SKILLS — copy and paste this into opencode:**
+
+```
+The Curator is installed and I have created my first domain. Connect it to THIS
+opencode project, and explain each step in plain language as you go. Work only in
+the project-level opencode.jsonc in this folder (not the global ~/.config/opencode
+config) — and never touch any Claude config file.
+
+1. Work out which install I have:
+   - Mac app: the file
+       ~/Library/Application Support/The Curator/bin/my-curator-mcp
+     exists (expand ~ to my full home path). The app writes it on every launch.
+   - Browser app: ~/the-curator/mcp/server.js exists.
+   If neither exists, stop and tell me (for the Mac app: open The Curator once,
+   then try again).
+
+2. Register the my-curator MCP in opencode.jsonc, using opencode's format EXACTLY
+   (top-level "mcp", "type": "local", "command" as one array) and ABSOLUTE paths.
+   Merge into any existing "mcp" block — never overwrite it.
+   - Mac app:
+       "my-curator": {
+         "type": "local",
+         "command": ["<ABSOLUTE path to .../The Curator/bin/my-curator-mcp>"],
+         "enabled": true
        }
-   If the Curator snippet included an env block (for example a DOMAINS_PATH), add it
-   as an "environment" object on the same entry — opencode uses "environment", NOT
-   "env":
-             "environment": { "DOMAINS_PATH": "<the value from the snippet>" }
-   If opencode.jsonc already has an "mcp" block, merge this "my-curator" entry into
-   it rather than overwriting the file.
+   - Browser app:
+       "my-curator": {
+         "type": "local",
+         "command": ["node", "<ABSOLUTE path to ~/the-curator/mcp/server.js>"],
+         "enabled": true
+       }
+   (If I paste you a snippet from The Curator's Settings -> MCP bridge, it is in
+   Claude's "mcpServers" format — TRANSLATE it: command + args become ONE
+   "command" array, and any "env" becomes "environment".)
 
-3. Install the Curator usage skill for opencode. opencode has no ~/.claude/skills
-   folder, so instead:
-   a. Download this file into a "curator-skill/" folder in THIS project:
-          https://raw.githubusercontent.com/talirezun/conduit-agent/main/use-cases/cotrugli-business-school/curator-skill/my-curator.md
-      (save it as curator-skill/my-curator.md). If the download fails, ask me for
-      the file — my instructor provides it alongside AGENTS.md.
-   b. Register it in opencode.jsonc so opencode always reads it, by adding an
-      "instructions" array at the top level (merge if one already exists):
-          "instructions": ["curator-skill/my-curator.md"]
+3. Install The Curator's two official skills into THIS project. Download every
+   file below into .agents/skills/ (create the folders), keeping the file names:
+     Base: https://raw.githubusercontent.com/talirezun/the-curator/main/skills
+     .agents/skills/my-curator/         SKILL.md  examples.md  maintenance.md  shared-brain.md
+     .agents/skills/curator-continuity/ SKILL.md  examples.md  brief-authority.md
+   Each file is at <Base>/<skill-name>/<file-name>. Check each download is a
+   real markdown file (not an error page). opencode discovers skills in
+   .agents/skills/ automatically — no config entry is needed.
 
-4. Reload opencode / restart the session so both the MCP and the instructions load.
-   Then verify: call the my-curator "list_domains" tool and show me my domains.
-   If it fails, check that the Curator app/server is running.
+4. Tell me to quit and reopen opencode (or start a new session) so it loads the
+   new MCP and skills. After I do, verify: call the my-curator "list_domains"
+   tool and show me my domains, and confirm both skills are available.
 
-5. Record in AGENTS.md (Memory / Context layer section): that the my-curator MCP
-   is connected, the path curator-skill/my-curator.md for the skill, and that the
-   Curator app must be running for the second brain to work.
+5. Record in AGENTS.md (Memory / Context layer section): that my-curator is
+   connected, which install I have (Mac app or browser app), that the skills live
+   in .agents/skills/, and that the MCP works even when the Curator app is closed.
 After setup, summarise what you did in 5 bullet points.
 ```
 
-**TRACK B — Claude (Cowork / Claude Code). INSTALL CURATOR MCP + SKILL — copy and paste this into your agent:**
+**TRACK B — Claude (Cowork / Claude Code).** The easiest route on Claude Desktop is The Curator's own wizard: open The Curator → **Settings → MCP bridge → Set up Claude Desktop**, follow it, then fully quit and reopen Claude Desktop. The prompt below does the same thing through your agent, and installs the skills.
+
+**INSTALL CURATOR MCP + SKILLS — copy and paste this into your agent:**
 
 ```
-The Curator app is installed and running. Connect it to Claude.
-Work only in claude_desktop_config.json (system location) — never touch opencode.jsonc.
-Explain each step in plain language.
+The Curator is installed and I have created my first domain. Connect it to Claude,
+and explain each step in plain language as you go. Work only in
+claude_desktop_config.json (system location) — never touch opencode.jsonc.
 
-1. Get the MCP snippet: open the Curator app -> Settings -> "My Curator" ->
-   "Copy snippet". It is already in Claude's format. Paste it to me. (If I cannot,
-   the server file is ~/the-curator/mcp/server.js — build the entry yourself.)
+1. Work out which install I have:
+   - Mac app: ~/Library/Application Support/The Curator/bin/my-curator-mcp exists
+     (expand ~ to my full home path).
+   - Browser app: ~/the-curator/mcp/server.js exists.
 
-2. Merge that snippet under the "mcpServers" key in claude_desktop_config.json,
-   WITHOUT deleting any MCP already there. It looks like:
-       {
-         "mcpServers": {
-           "my-curator": {
-             "command": "node",
-             "args": ["<ABSOLUTE path to ~/the-curator/mcp/server.js>"]
-           }
-         }
+2. Merge a my-curator entry under "mcpServers" in claude_desktop_config.json,
+   WITHOUT deleting any MCP already there. Use ABSOLUTE paths.
+   - Mac app:
+       "my-curator": {
+         "command": "<ABSOLUTE path to .../The Curator/bin/my-curator-mcp>",
+         "args": []
        }
-   If the snippet included an env block (for example a DOMAINS_PATH), keep it as an
-   "env" object on the same entry — Claude uses "env", NOT "environment":
-             "env": { "DOMAINS_PATH": "<the value from the snippet>" }
+   - Browser app:
+       "my-curator": {
+         "command": "node",
+         "args": ["<ABSOLUTE path to ~/the-curator/mcp/server.js>"]
+       }
+   (Claude uses "env" for environment variables, NOT "environment".)
 
-3. Install the Curator usage skill:
-   - Claude Code: run these so the skill lives in ~/.claude/skills/my-curator/ :
-         mkdir -p ~/.claude/skills/my-curator
-         curl -L https://raw.githubusercontent.com/talirezun/the-curator/main/claude-skills/my-curator/SKILL.md -o ~/.claude/skills/my-curator/SKILL.md
-         curl -L https://raw.githubusercontent.com/talirezun/the-curator/main/claude-skills/my-curator/examples.md -o ~/.claude/skills/my-curator/examples.md
-   - Claude Cowork / Claude Desktop: download those two files and add them to my
-     project's Knowledge (the + in the Files section), or paste SKILL.md (minus its
-     frontmatter) into the project's custom instructions.
+3. Install The Curator's two official skills. Files are at
+   https://raw.githubusercontent.com/talirezun/the-curator/main/skills/<skill-name>/<file-name>:
+     my-curator:         SKILL.md  examples.md  maintenance.md  shared-brain.md
+     curator-continuity: SKILL.md  examples.md  brief-authority.md
+   - Claude Code: download them into ~/.claude/skills/my-curator/ and
+     ~/.claude/skills/curator-continuity/.
+   - Claude Cowork / Desktop: download them into a folder I can find, then walk me
+     through adding them to my project's knowledge (or, on the Mac app, point me to
+     The Curator -> Settings -> MCP bridge -> Tools on this Mac, which offers both
+     skills as ready-made .zip files).
 
 4. Remind me to FULLY quit and restart Claude Desktop (Cmd+Q on macOS, or fully
    exit on Windows) so the new MCP loads — Claude will not see it until you do.
 
 5. After I restart, verify: call the my-curator "list_domains" tool and show me my
-   domains. If it fails, confirm the Curator app is running.
+   domains.
 
-6. Record in AGENTS.md (Memory / Context layer section): that the my-curator MCP
-   is connected, where the skill files live, and that the Curator app must be running
-   for the second brain to work.
+6. Record in AGENTS.md (Memory / Context layer section): that my-curator is
+   connected, which install I have, where the skill files live, and that the MCP
+   works even when the Curator app is closed.
 After setup, summarise what you did in 5 bullet points.
 ```
 
@@ -707,7 +742,7 @@ Most MCP problems are one of these. Tell your agent what you see and point it at
 | --- | --- | --- |
 | **The tool isn't available at all** | Is the server in the **project** `opencode.jsonc` (this folder), not the global config? Ask the agent to re-open/reload the project so it re-reads the file. | Did you **fully quit and restart** Claude Desktop (Cmd+Q, not just close the window)? MCPs only load on a full restart. |
 | **The config "looks right" but errors** | Wrong format — opencode needs the `mcp` key, `"type": "local"`, and `command` as an **array** (Section 2.1). Ask: *"fix this to opencode's mcp format."* | Wrong format — Claude needs the `mcpServers` key with separate `command` + `args`. Ask: *"fix this to Claude's mcpServers format."* |
-| **Curator tools fail (`list_domains` errors)** | Is **The Curator app running**? The MCP talks to it locally — start the app, then retry. | Same — start The Curator app, then retry. |
+| **Curator tools fail (`list_domains` errors)** | The MCP works with The Curator app **closed**, so check the path instead: the `command` in `opencode.jsonc` must be the **absolute** path to the Mac app launcher (`.../The Curator/bin/my-curator-mcp` — open the app once so it writes it) or to `~/the-curator/mcp/server.js` for the browser app. Then reopen opencode. | Same path check in `claude_desktop_config.json` (or re-run **Settings → MCP bridge → Set up Claude Desktop**), then fully quit and restart Claude Desktop. |
 | **Ledger returns an error** | `401` = key missing/unknown · `403` = you sent `X-Tenant` (don't) · `422` = missing `Content-Type` or bad payload · `429` = rate limit. See Section 8. | Same codes — see Section 8. |
 
 When in doubt, paste the exact error to your agent and ask it to diagnose and fix — it edits the config for you.
@@ -1117,7 +1152,7 @@ Because opencode and Claude Desktop use **different MCP config formats** — not
 
 ### **Do I need a SKILL.md file?**
 
-You never **write** one — for this lab your own agent config lives in a single file, AGENTS.md (renamed CLAUDE.md on Claude Desktop). The one exception is optional and **pre-made for you**: if you install The Curator (Section 6), it ships a ready-made usage skill so your agent handles the second brain well. You don't author it — the Step 2 prompt just downloads it (into `curator-skill/my-curator.md` for opencode, or `~/.claude/skills/my-curator/` for Claude Code). You still never create a skill by hand.
+You never **write** one — for this lab your own agent config lives in a single file, AGENTS.md (renamed CLAUDE.md on Claude Desktop). The one exception is optional and **pre-made for you**: if you install The Curator (Section 6), it ships ready-made usage skills so your agent handles the second brain well. You don't author them — the Step 3 prompt just downloads The Curator's two official skills, `my-curator` and `curator-continuity` (into `.agents/skills/` in your project for opencode, or `~/.claude/skills/` for Claude Code; on Claude Cowork/Desktop you add them to the project's knowledge). You still never create a skill by hand.
 
 ### **Can I run the setup in the normal Claude chat window?**
 
@@ -1164,4 +1199,4 @@ The agent notes the failure clearly and continues with the tools it has. Your se
 Both opencode and Claude (via Cowork / Claude Code) can use the GitHub CLI (gh). If you need it, prompt your agent to check for the GitHub CLI and install/authenticate it (cli.github.com, free; "gh auth login"). The agent can then run read-only gh commands as defined in your mandate.
 
 *Vanguard Agent Lab | COTRUGLI Business School | Vanguard MBA | Chasing Jarvis — Module 5+*
-*Version 3.4 — Dr. Tali Rezun — July 2026 (single-value ledger connection: API key only, base URL built in; project-scoped opencode MCPs)*
+*Version 3.5 — Dr. Tali Rezun — September 2026 (The Curator: Mac app or browser app, three-step connect with the official skills; builds on v3.4 single-value ledger connection and project-scoped opencode MCPs)*

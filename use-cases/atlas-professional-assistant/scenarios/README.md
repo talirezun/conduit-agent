@@ -1,6 +1,6 @@
 # Atlas scenarios — ready-to-run prompts
 
-Don't have your own workflow in mind yet? Use these to try Atlas. Each is a **copy-paste prompt** — fill the `[BRACKETS]` and paste it into your agent. They mirror Sections 8–9 of the [guide](../Atlas_Professional_Assistant_Guide.md), organised as **Basic** (works with little or no setup) and **Advanced** (chains modules together). Each notes what it needs.
+Don't have your own workflow in mind yet? Use these to try Atlas. Each is a **copy-paste prompt** — fill the `[BRACKETS]` and paste it into your agent. They mirror Sections 11–12 of the [guide](../Atlas_Professional_Assistant_Guide.md), organised as **Basic** (works with little or no setup) and **Advanced** (chains modules together). Each notes what it needs.
 
 The `[DOMAIN]` placeholder means one of your Curator domains (e.g. `work` or `personal`). Drop that line if you haven't installed the Curator.
 
@@ -29,20 +29,20 @@ data/action-items.xlsx if Excel is on). Save the minutes to meetings/.
 ```
 
 ### B3 — Brief me before a call
-*Needs: Web Research; better with Curator.*
+*Needs: Web Search; better with Curator.*
 ```
 Brief me on [company / person / topic] before my meeting at [time].
-Check my Curator second brain first, then the public web. Give me a RESEARCH BRIEF
-per AGENTS.md: bottom line up top, key points with sources, what my second brain
-already knew, and watch-outs. Keep it to one screen.
+Check my Curator second brain first, then search the public web. Give me a
+RESEARCH BRIEF per AGENTS.md: bottom line up top, key points with sources, what my
+second brain already knew, and watch-outs. Keep it to one screen.
 ```
 
 ### B4 — Read a document
-*Needs: PDF Reading.*
+*Needs: Documents.*
 ```
-Read the document at documents/[filename].pdf. Give me: a one-paragraph summary,
-the 5 things I most need to know, and any dates, numbers, or obligations that
-matter. If there's a table worth keeping, extract it into a new sheet in
+Read the document at documents/[filename — .docx, .pptx, .xlsx or .pdf]. Give me:
+a one-paragraph summary, the 5 things I most need to know, and any dates, numbers,
+or obligations that matter. If there's a table worth keeping, extract it into a new sheet in
 data/[name].xlsx.
 ```
 
@@ -52,6 +52,25 @@ data/[name].xlsx.
 Produce my WEEKLY DIGEST per AGENTS.md for this week: what got done, meetings and
 decisions, what's open or overdue, any research signals, and next week's plan.
 Save it to reports/weekly/ and give me the highlights.
+```
+
+### B6 — Prepare for tomorrow
+*Needs: Calendar; better with Curator.*
+```
+Look at my calendar for tomorrow. For each meeting, give me one line: who, what
+it's about, and what I should prepare. For the most important one, check my
+Curator second brain and give me a short RESEARCH BRIEF. Add any preparation I
+need to do as tasks in tasks.md.
+```
+
+### B7 — Learn as you go
+*Needs: nothing extra.*
+```
+coach me
+```
+```
+Explain [MCP / skill / second brain / context management] using what we've set up
+in this folder as the example. Then show me one thing I can try right now.
 ```
 
 ---
@@ -67,17 +86,17 @@ Process my last meeting end to end:
 3. For each action item that needs an email to someone, draft the email — but do
    NOT send anything; show me the drafts for approval.
 4. Save a short summary of the meeting's decisions to my [DOMAIN] Curator domain
-   following the Curator skill (no broken links, no duplicate pages).
+   following the my-curator skill (no broken links, no duplicate pages).
 Report what you filed, what's drafted, and what's waiting on my approval.
 ---
 [PASTE TRANSCRIPT HERE if OpenWhispr is not installed]
 ```
 
 ### A2 — Competitive / market monitor (recurring)
-*Needs: Web Research · Curator · Excel (optional).*
+*Needs: Web Search · Curator · Excel (optional).*
 ```
 Set up a monitoring routine for [company / market / topic]. Right now:
-1. Do a research scan of the public web for anything new in the last [30] days.
+1. Search the public web for anything new in the last [30] days.
 2. Cross-check against what my Curator second brain already has, so you only flag
    what's genuinely new.
 3. Give me a RESEARCH SCAN per AGENTS.md with a one-line signal I should care about.
@@ -86,11 +105,11 @@ Set up a monitoring routine for [company / market / topic]. Right now:
 Then tell me the cleanest way to re-run this weekly.
 ```
 
-### A3 — Document → structured data → briefing
-*Needs: PDF Reading · Excel · Curator (optional).*
+### A3 — Board pack → structured data → briefing
+*Needs: Documents · Excel · Curator (optional).*
 ```
-I've dropped [a contract / report / deck] at documents/[filename].pdf.
-1. Read it with the PDF MCP.
+I've dropped [a board deck / contract / financial report] at documents/[filename].
+1. Read it with the Documents MCP.
 2. Extract the key structured data (terms, dates, figures, parties — whatever fits)
    into a clean sheet in data/[name].xlsx.
 3. Write me a one-page RESEARCH BRIEF on what it means for me and any risks or
@@ -113,9 +132,19 @@ to tasks.md. Nothing leaves my inbox without my explicit "confirm send".
 ```
 It's Monday. Give me a start-of-week brief:
 1. Run the Daily Status Check (open tasks, follow-ups, overdue).
-2. Pull last week's WEEKLY DIGEST for context.
-3. If the email module is on, add an inbox summary (read-only).
-4. If the research module is on, run a quick scan on [my key topic] for weekend news.
-5. End with a prioritised, numbered plan for my week — the 5 things that matter most.
+2. If the calendar is connected, list this week's key meetings and what each needs.
+3. Pull last week's WEEKLY DIGEST for context.
+4. If the email module is on, add an inbox summary (read-only).
+5. If web search is on, run a quick scan on [my key topic] for weekend news.
+6. End with a prioritised, numbered plan for my week — the 5 things that matter most.
 Keep it to one screen. Don't take any external action without my approval.
+```
+
+### A6 — Team knowledge → my decision
+*Needs: Curator · Shared Brain.*
+```
+I have to decide [the decision]. Search our Shared Brain and my own Curator
+domain for everything relevant: what the group has learned, what I've noted, and
+where they disagree. Give me a RESEARCH BRIEF with a clear recommendation and the
+two strongest counter-arguments. Cite the pages you used.
 ```

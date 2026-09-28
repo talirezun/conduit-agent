@@ -43,7 +43,7 @@ Active layers (turn on what you need — delete rows you won't use):
 | Layer | Purpose | Status |
 |---|---|---|
 | 🎯 **Execution** | The actual work — tasks, deliverables, tracking, evidence | Required |
-| 🧠 **Memory** | Short-term: `memory.md` · Long-term: The Curator MCP | Required |
+| 🧠 **Memory & Context** | Working memory: `memory.md` · Context layer: The Curator MCP | Required |
 | 📊 **Data** | Spreadsheets / logs for structured tracking | Recommended |
 | 📡 **Intelligence** | External data sources you define — web monitoring, signals | Optional |
 | 📧 **Communication** | Atomic Mail MCP — an agent-owned mailbox | Optional |

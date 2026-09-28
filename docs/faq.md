@@ -34,7 +34,7 @@ No. The [Setup prompt](../templates/prompts/setup.md) creates it, and the agent 
 
 ### Do I need a separate `SKILL.md` or other files?
 
-No. Everything lives in `AGENTS.md` (or `CLAUDE.md`). One file, on purpose, to keep things simple.
+You never write one. Your agent's own config lives in `AGENTS.md` (or `CLAUDE.md`) — one file, on purpose, to keep things simple. The one exception is The Curator: it ships two official skills (`my-curator` and `curator-continuity`), and the [Install Curator prompt](../templates/prompts/install-curator.md) downloads them into place for you.
 
 ### Can I build both a personal and a company agent?
 

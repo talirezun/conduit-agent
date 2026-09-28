@@ -11,7 +11,7 @@ This is the heart of Conduit's promise: **one core, many uses.** A business scho
 | Use case | For | Highlights |
 |---|---|---|
 | 🎓 **[Cotrugli Business School](cotrugli-business-school/)** | COTRUGLI / Vanguard MBA students | 30-day execution lifecycle, reviewer flow, required Cotrugli Ledger connection |
-| 🧭 **[Atlas — Professional Assistant](atlas-professional-assistant/)** | Any working professional (CEO, founder, manager, consultant) | Agnostic execution assistant · meetings → action items, on-demand research, PDF reading, second brain · opencode-only, prompt-driven, privacy-first |
+| 🧭 **[Atlas — Professional Assistant](atlas-professional-assistant/)** | Any working professional (CEO, founder, manager, consultant) | Agnostic execution assistant that **coaches you while it builds itself** · five-level learning path (harness → MCPs → second brain → shared brain → context management) · meetings → action items, web search, Word/PowerPoint/Excel/PDF reading, read-only calendar, The Curator (Mac app or browser) · opencode-only, prompt-driven, privacy-first |
 | 🏟️ **[NEO-Arena Team Agent](neo-arena-team-agent/)** | Teams competing in the NEO-Arena pilot | Live trading agent under a hard CEO-signature gate · prepares, never commits · keeps its own books + refusal log · thin `arena_client.py` · both harnesses |
 
 *More coming — yours could be next.*

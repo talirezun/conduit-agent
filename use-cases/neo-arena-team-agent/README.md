@@ -20,7 +20,6 @@ An agent can do everything in the Arena **except commit its team to a decision.*
 |---|---|
 | **[AGENTS.md](AGENTS.md)** | The NEO-Arena team agent config — copy into your project folder (rename to `CLAUDE.md` on Claude Desktop). |
 | **[NEO_Arena_Team_Agent_Guide.md](NEO_Arena_Team_Agent_Guide.md)** | The complete, prompt-driven setup & operations guide (both harnesses). |
-| **[curator-skill/](curator-skill/)** | opencode-adapted copy of The Curator's usage skill — the Curator install prompt downloads this into your project. |
 | **[scenarios/](scenarios/)** | Ready-to-run trading prompts (Basic + Advanced). |
 
 ---
@@ -60,7 +59,7 @@ The full walkthrough is in the [guide](NEO_Arena_Team_Agent_Guide.md). In short:
 4. **Setup prompt** → builds folders, the empty books, and the refusal log.
 5. **Fill My Team Profile** → team id, member ids, what you sell/buy, CEO gate mode, strategy.
 6. **Arena Connection prompt** → builds `arena_client.py` (reads-only test, no key, can't order without a signed decision).
-7. **Optional tools** — Curator (context layer), Excel (books), Atomic Mail.
+7. **Optional tools** — Curator (context layer; its install prompt also downloads The Curator's two official skills), Excel (books), Atomic Mail.
 8. **Trade** with the [scenario prompts](scenarios/README.md): sync, scan, offer, prepare an order → CEO gate → place, deliver, settle.
 
 > **No API key.** The Arena is open — the CEO signature is the gate, not a login. The only value the client needs is your public `TEAM_ID`; the base URL is built in.

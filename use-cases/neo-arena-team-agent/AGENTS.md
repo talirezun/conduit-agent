@@ -313,10 +313,12 @@ Search my Curator knowledge base for [counterparty / service / topic]. Return re
 notes, prior deals, reliability, or price context related to [specific question].
 ```
 
-Follow the Curator usage skill (`curator-skill/my-curator.md`) for all reads and writes. **Honesty line:** if the Curator has nothing on a counterparty, say so — never invent a reliability number.
+Follow The Curator's `my-curator` skill (installed during setup) for all reads and writes. **Honesty line:** if the Curator has nothing on a counterparty, say so — never invent a reliability number.
 
-<!-- AGENT: when My Curator is connected during setup, record the MCP server name, the skill
-     file path (curator-skill/my-curator.md), and that the Curator app must be running. -->
+<!-- AGENT: when My Curator is connected during setup, record the MCP server name, which
+     install the owner has (Mac app or browser app), where the skill files live, and that the
+     MCP works even when the Curator app is closed (the app is needed only to ingest, chat,
+     or change settings). -->
 
 ---
 
@@ -578,7 +580,7 @@ The agent installs and configures everything below during setup, driven by the p
 | `uv` / `uvx` (Python) | Runs the Arena client and Python MCPs | Both | Agent installs when needed |
 | `node` / `npx` | Runs Node-based MCPs | Both | Agent installs when needed |
 | Arena client (`arena_client.py`) | Required — talks to the Arena API | Both | "Arena Connection" prompt |
-| My Curator | Context layer — compounding second brain | Both | "Install The Curator" prompt (two steps) |
+| My Curator | Context layer — compounding second brain | Both | "Install The Curator" prompts (Guide §8.1) |
 | Excel MCP (`haris-musa/excel-mcp-server`) | Books as spreadsheets | **opencode only** (Claude does Excel natively) | "Install Excel MCP" prompt |
 | Atomic Mail (`@atomicmail/agent-skill`, `@atomicmail/mcp`) | Agent's own notification mailbox | Optional | "Install Atomic Mail" prompt |
 

@@ -14,7 +14,6 @@ This is **Use Case #1** for the [Conduit framework](../../README.md): the config
 |---|---|
 | **[AGENTS.md](AGENTS.md)** | The Vanguard Execution Agent config — copy this into your project folder (rename to `CLAUDE.md` on Claude). |
 | **[Vanguard_Agent_Lab_Guide.md](Vanguard_Agent_Lab_Guide.md)** | The complete, step-by-step student guide (the version is stated in the guide's header). |
-| **[curator-skill/](curator-skill/)** | opencode-adapted copy of The Curator's usage skill — the Curator install prompt downloads this into the agent's project. |
 | **[scenarios/](scenarios/)** | Four ready-to-use fictional business scenarios if you don't have your own yet. |
 | **[images/](images/)** | The lab's diagrams. |
 
@@ -51,7 +50,7 @@ The full walkthrough is in the [lab guide](Vanguard_Agent_Lab_Guide.md). In shor
 2. **Make a folder**, drop in [AGENTS.md](AGENTS.md) (or `CLAUDE.md`).
 3. **Setup prompt** → builds folders, memory, tools. ([prompt](../../templates/prompts/setup.md))
 4. **Fill the config** — Personal or Company. ([prompt](../../templates/prompts/fill-config.md))
-5. **Install The Curator** (context layer / second brain) — a **two-step** install: install the app, then a second prompt connects its MCP *and* its usage skill (split by track). See Section 6 of the [guide](Vanguard_Agent_Lab_Guide.md).
+5. **Install The Curator** (context layer / second brain) — three steps: get the app (Mac app download or browser app by prompt), do the in-app first run (AI key + first domain), then a prompt connects its MCP and downloads The Curator's two official skills (`my-curator`, `curator-continuity`), split by track. See Section 6 of the [guide](Vanguard_Agent_Lab_Guide.md).
 6. **Connect the Cotrugli Ledger** (required) — build `ledger_connector.py` with the Ledger Connection prompt in the [guide](Vanguard_Agent_Lab_Guide.md). All you need from your instructor is **your API key**.
 7. **Run your project:** create your Commitment, record Fulfillments with evidence, get Acceptances, handle Disputes, produce a Run Report.
 
